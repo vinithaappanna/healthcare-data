@@ -109,3 +109,25 @@ class Pipeline:
         store = self.load_store()
         counts = Counter(row["plan_type"] for row in store.values() if row["plan_type"])
         return counts.most_common()
+
+    def plan_performance(self) -> list[dict]:
+        """Per plan type: claims, denial rate, paid-to-billed ratio.
+
+        Illustrative synthetic metrics - the kind of plan-level view a
+        claims analyst starts from. Sorted by claim count, descending.
+        """
+        store = self.load_store()
+        plans: dict[str, dict] = {}
+        for row in store.values():
+            plan = row["plan_type"] or "Unknown"
+            p = plans.setdefault(plan, {"plan": plan, "claims": 0, "denied": 0,
+                                        "billed": 0.0, "paid": 0.0})
+            p["claims"] += 1
+            p["denied"] += row["status"] == "denied"
+            p["billed"] += float(row["billed_amount"] or 0)
+            p["paid"] += float(row["paid_amount"] or 0)
+        out = [{"plan": p["plan"], "claims": p["claims"],
+                "denial_rate": round(p["denied"] / p["claims"], 4),
+                "paid_to_billed": round(p["paid"] / p["billed"], 4) if p["billed"] else 0.0}
+               for p in plans.values()]
+        return sorted(out, key=lambda r: (-r["claims"], r["plan"]))

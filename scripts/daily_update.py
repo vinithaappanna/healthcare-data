@@ -50,7 +50,8 @@ def main() -> int:
     reasons = pipe.denial_reasons()
     mix = pipe.plan_mix()
     (REPORTS / "claims_report.md").write_text(
-        report.render_markdown(monthly, reasons, mix, stats["total"]),
+        report.render_markdown(monthly, reasons, mix, stats["total"],
+                               plan_perf=pipe.plan_performance()),
         encoding="utf-8",
     )
     if report.plot_monthly_financials(monthly, REPORTS / "monthly_financials.png"):

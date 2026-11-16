@@ -68,3 +68,26 @@ def test_denial_reasons_and_plan_mix(tmp_path):
     ])
     assert pipe.denial_reasons() == [("duplicate claim", 2)]
     assert dict(pipe.plan_mix()) == {"PPO": 2, "HMO": 1}
+
+
+def test_plan_performance_rates(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([
+        make_valid("CLM-A", plan_type="PPO", billed_amount=100, allowed_amount=80, paid_amount=60),
+        make_valid("CLM-B", plan_type="PPO", billed_amount=100, allowed_amount=80, paid_amount=0,
+                   status="denied", denial_reason="duplicate claim"),
+        make_valid("CLM-C", plan_type="HMO", billed_amount=50, allowed_amount=40, paid_amount=40),
+    ])
+    perf = {r["plan"]: r for r in pipe.plan_performance()}
+    assert perf["PPO"]["claims"] == 2
+    assert perf["PPO"]["denial_rate"] == 0.5
+    assert perf["PPO"]["paid_to_billed"] == 0.3
+    assert perf["HMO"]["denial_rate"] == 0.0
+    assert pipe.plan_performance()[0]["plan"] == "PPO"  # most claims first
+
+
+def test_report_includes_plan_performance_table():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, plan_perf=[
+        {"plan": "PPO", "claims": 2, "denial_rate": 0.5, "paid_to_billed": 0.3}])
+    assert "## Plan performance" in md and "| PPO | 2 | 50.0% | 30.0% |" in md

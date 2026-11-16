@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 
 def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     plan_mix: list[tuple[str, int]], total_claims: int,
-                    generated_at: dt.datetime | None = None) -> str:
+                    generated_at: dt.datetime | None = None,
+                    plan_perf: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -42,6 +43,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
     lines += ["", "## Plan mix", ""]
     for plan, count in plan_mix:
         lines.append(f"- {plan}: {count}")
+    if plan_perf:
+        lines += ["", "## Plan performance", "",
+                  "| Plan | Claims | Denial rate | Paid / billed |",
+                  "| --- | ---: | ---: | ---: |"]
+        for r in plan_perf:
+            lines.append(f"| {r['plan']} | {r['claims']} | {r['denial_rate']:.1%} | "
+                         f"{r['paid_to_billed']:.1%} |")
     lines += [
         "",
         "![Monthly billed vs paid](monthly_financials.png)",
