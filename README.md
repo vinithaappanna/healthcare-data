@@ -39,4 +39,7 @@ The latest generated report lives at
 All synthetic, from `healthdata.claims.ClaimGenerator` with a fixed seed per
 run. Amounts follow simple rules (paid <= allowed <= billed; denied claims pay
 nothing) so the marts and quality checks have realistic invariants to enforce.
-Not medical, financial or insurance advice.
+The procedure/diagnosis codes, plan types, denial reasons and payment rules are
+illustrative teaching examples - they are not authoritative coding, coverage
+or adjudication logic, and nothing here is medical, financial or insurance
+advice.
