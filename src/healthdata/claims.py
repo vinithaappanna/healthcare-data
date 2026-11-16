@@ -43,13 +43,21 @@ STATUSES = ["paid", "denied", "adjusted"]
 
 
 class ClaimGenerator:
-    """Deterministic synthetic claims. `ClaimGenerator(seed).claims(n)`."""
+    """Deterministic synthetic claims. `ClaimGenerator(seed).claims(n)`.
 
-    def __init__(self, seed: int = 42):
+    `batch` numbers a batch within a day so several runs a day produce
+    distinct, non-overlapping claims (ids carry a -Bnn- segment). Leave it
+    at 0 for a standalone generator and the id format is unchanged.
+    `id_prefix` overrides the seed-derived prefix so a day's batches share
+    one prefix even though each batch gets its own RNG seed.
+    """
+
+    def __init__(self, seed: int = 42, batch: int = 0, id_prefix: str | None = None):
         self._rng = random.Random(seed)
         # Scope claim ids to the seed so batches from different generators
         # never collide on claim_id (the dedupe grain).
-        self._id_prefix = f"CLM-{seed % 100000:05d}"
+        self._id_prefix = id_prefix or f"CLM-{seed % 100000:05d}"
+        self._batch = batch
         self._claim_seq = 0
 
     def _member(self) -> dict:
@@ -72,8 +80,12 @@ class ClaimGenerator:
         allowed = round(billed * rng.uniform(0.6, 0.95), 2)
         paid = round(allowed * rng.uniform(0.7, 1.0), 2) if status != "denied" else 0.0
         day = service_date or dt.date.today() - dt.timedelta(days=rng.randrange(0, 365))
+        if self._batch:
+            claim_id = f"{self._id_prefix}-B{self._batch:02d}-{self._claim_seq:06d}"
+        else:
+            claim_id = f"{self._id_prefix}-{self._claim_seq:06d}"
         return {
-            "claim_id": f"{self._id_prefix}-{self._claim_seq:06d}",
+            "claim_id": claim_id,
             **member,
             "service_date": day.isoformat(),
             "procedure_code": code,
@@ -87,3 +99,23 @@ class ClaimGenerator:
 
     def claims(self, n: int, service_date: dt.date | None = None) -> list[dict]:
         return [self.claim(service_date) for _ in range(n)]
+
+
+def next_batch_index(claim_ids, day_prefix: str) -> int:
+    """Next batch number for a day, from existing claim ids.
+
+    Scans ids like CLM-61116-B03-000042 for the day's prefix and returns one
+    more than the highest batch seen. A day with only unbatched ids (or no
+    ids yet) starts at 1.
+    """
+    highest = 0
+    marker = f"{day_prefix}-B"
+    for cid in claim_ids:
+        if not cid.startswith(marker):
+            continue
+        try:
+            number = int(cid[len(marker):len(marker) + 2])
+        except ValueError:
+            continue
+        highest = max(highest, number)
+    return highest + 1

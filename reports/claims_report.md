@@ -1,8 +1,8 @@
 # Healthcare Data - claims pipeline report
 
-Generated 2026-11-16 14:46 UTC. All data is synthetic - no real member, patient or plan information.
+Generated 2026-11-16 17:06 UTC. All data is synthetic - no real member, patient or plan information.
 
-**560 claims** in store. Billed $1,488,123, paid $922,143, denied 53 overall.
+**680 claims** in store. Billed $1,880,929, paid $1,167,256, denied 65 overall.
 
 ## Monthly financials
 
@@ -20,22 +20,22 @@ Generated 2026-11-16 14:46 UTC. All data is synthetic - no real member, patient 
 | 2026-08 | 50 | $87,251 | $70,911 | $55,220 | 18.0% |
 | 2026-09 | 28 | $97,162 | $80,729 | $53,482 | 7.1% |
 | 2026-10 | 47 | $71,505 | $55,063 | $42,442 | 8.5% |
-| 2026-11 | 81 | $218,160 | $169,411 | $130,693 | 4.9% |
+| 2026-11 | 201 | $610,967 | $466,527 | $375,807 | 8.0% |
 
 ## Denial reasons
 
-- not medically necessary (16)
-- duplicate claim (13)
-- timely filing exceeded (12)
-- out-of-network provider (7)
-- missing prior authorization (6)
+- not medically necessary (20)
+- timely filing exceeded (16)
+- duplicate claim (14)
+- out-of-network provider (9)
+- missing prior authorization (7)
 
 ## Plan mix
 
-- PPO: 153
-- HMO: 151
-- EPO: 140
-- HDHP: 116
+- HMO: 183
+- PPO: 182
+- EPO: 171
+- HDHP: 144
 
 ![Monthly billed vs paid](monthly_financials.png)
 

@@ -20,7 +20,9 @@ seeded RNG - no real member, patient, provider or plan data anywhere.
   checks that fail loudly
 - `healthdata.report` - markdown report plus charts
 - `scripts/daily_update.py` - one update round: fresh synthetic batch, quality
-  gates, regenerated report. Idempotent: re-runs add nothing twice
+  gates, regenerated report. Each run adds a new sequenced batch (claim ids
+  carry a -Bnn- segment), so multiple rounds a day all bring new data;
+  pipeline dedupe still prevents double-ingesting an identical batch
 
 ## Try it
 
