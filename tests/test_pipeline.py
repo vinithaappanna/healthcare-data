@@ -140,3 +140,24 @@ def test_report_includes_utilization_section():
         "members_total": 10, "high_utilizers": 2, "share_of_paid": 0.25,
         "top": [{"member_id": "MBR-0001", "claims": 4, "paid": 900.0}]})
     assert "## Member utilization" in md and "| MBR-0001 | 4 | $900 |" in md
+
+
+def test_age_band_costs_order_and_math(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([
+        make_valid("CLM-1", age_band="60-74", billed_amount=100, allowed_amount=80, paid_amount=60),
+        make_valid("CLM-2", age_band="0-17", billed_amount=100, allowed_amount=80, paid_amount=40),
+        make_valid("CLM-3", age_band="0-17", billed_amount=100, allowed_amount=0, paid_amount=0,
+                   status="denied", denial_reason="duplicate claim"),
+    ])
+    out = pipe.age_band_costs()
+    assert [b["age_band"] for b in out] == ["0-17", "60-74"]  # natural age order
+    assert out[0]["avg_paid"] == 20.0 and out[0]["denial_rate"] == 0.5
+
+
+def test_age_band_chart_written(tmp_path):
+    from healthdata import report
+    bands = [{"age_band": "0-17", "claims": 2, "avg_paid": 20.0, "denial_rate": 0.5}]
+    assert report.plot_age_band_costs(bands, tmp_path / "a.png")
+    assert (tmp_path / "a.png").stat().st_size > 1000
+    assert report.plot_age_band_costs([], tmp_path / "b.png") is False

@@ -177,3 +177,21 @@ class Pipeline:
             "top": [{"member_id": m["member_id"], "claims": m["claims"],
                      "paid": round(m["paid"], 2)} for m in top_rows],
         }
+
+    def age_band_costs(self) -> list[dict]:
+        """Claims, average paid per claim and denial rate by age band, in
+        natural age order. Illustrative synthetic metrics."""
+        from .claims import AGE_BANDS
+        store = self.load_store()
+        bands: dict[str, dict] = {}
+        for row in store.values():
+            b = bands.setdefault(row["age_band"] or "Unknown",
+                                 {"claims": 0, "paid": 0.0, "denied": 0})
+            b["claims"] += 1
+            b["paid"] += float(row["paid_amount"] or 0)
+            b["denied"] += row["status"] == "denied"
+        order = {band: i for i, band in enumerate(AGE_BANDS)}
+        return [{"age_band": name, "claims": b["claims"],
+                 "avg_paid": round(b["paid"] / b["claims"], 2),
+                 "denial_rate": round(b["denied"] / b["claims"], 4)}
+                for name, b in sorted(bands.items(), key=lambda kv: (order.get(kv[0], 99), kv[0]))]

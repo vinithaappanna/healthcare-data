@@ -14,7 +14,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     generated_at: dt.datetime | None = None,
                     plan_perf: list[dict] | None = None,
                     procedures: list[dict] | None = None,
-                    utilization: dict | None = None) -> str:
+                    utilization: dict | None = None,
+                    age_bands: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -67,6 +68,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Member | Claims | Paid |", "| --- | ---: | ---: |"]
         for r in utilization["top"]:
             lines.append(f"| {r['member_id']} | {r['claims']} | ${r['paid']:,.0f} |")
+    if age_bands:
+        lines += ["", "## Cost by age band", "", "![Average paid by age band](age_band_costs.png)"]
     lines += [
         "",
         "![Monthly billed vs paid](monthly_financials.png)",
@@ -111,6 +114,23 @@ def plot_denial_reasons(denial_reasons: list[tuple[str, int]], out_path) -> bool
     ax.set_title("Denial reasons (synthetic claims)")
     ax.set_xlabel("claims denied")
     ax.invert_yaxis()
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return True
+
+
+def plot_age_band_costs(age_bands: list[dict], out_path) -> bool:
+    if not age_bands:
+        return False
+    names = [b["age_band"] for b in age_bands]
+    fig, ax = plt.subplots(figsize=(8, 3.6))
+    bars = ax.bar(names, [b["avg_paid"] for b in age_bands], color="#1c7ed6")
+    for bar, b in zip(bars, age_bands):
+        ax.annotate(f"{b['denial_rate']:.0%} denied", (bar.get_x() + bar.get_width() / 2,
+                    bar.get_height()), ha="center", va="bottom", fontsize=8)
+    ax.set_title("Average paid per claim by age band (synthetic claims)")
+    ax.set_ylabel("USD per claim")
     fig.tight_layout()
     fig.savefig(out_path, dpi=120)
     plt.close(fig)
