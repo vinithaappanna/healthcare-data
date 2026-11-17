@@ -91,3 +91,25 @@ def test_report_includes_plan_performance_table():
     md = report.render_markdown([], [], [], 0, plan_perf=[
         {"plan": "PPO", "claims": 2, "denial_rate": 0.5, "paid_to_billed": 0.3}])
     assert "## Plan performance" in md and "| PPO | 2 | 50.0% | 30.0% |" in md
+
+
+def test_procedure_summary_ranks_by_paid(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([
+        make_valid("CLM-A", procedure_code="27447", billed_amount=1000, allowed_amount=900, paid_amount=800),
+        make_valid("CLM-B", procedure_code="99213", billed_amount=100, allowed_amount=80, paid_amount=70),
+        make_valid("CLM-C", procedure_code="99213", billed_amount=200, allowed_amount=0, paid_amount=0,
+                   status="denied", denial_reason="duplicate claim"),
+    ])
+    out = pipe.procedure_summary()
+    assert [r["code"] for r in out] == ["27447", "99213"]
+    assert out[1]["claims"] == 2 and out[1]["avg_billed"] == 150.0
+    assert out[1]["denial_rate"] == 0.5
+    assert len(pipe.procedure_summary(top=1)) == 1
+
+
+def test_report_includes_procedure_table():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, procedures=[
+        {"code": "99213", "claims": 2, "avg_billed": 150.0, "paid": 70.0, "denial_rate": 0.5}])
+    assert "## Top procedures by paid amount" in md and "| 99213 | 2 |" in md

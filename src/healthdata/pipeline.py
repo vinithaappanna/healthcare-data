@@ -131,3 +131,23 @@ class Pipeline:
                 "paid_to_billed": round(p["paid"] / p["billed"], 4) if p["billed"] else 0.0}
                for p in plans.values()]
         return sorted(out, key=lambda r: (-r["claims"], r["plan"]))
+
+    def procedure_summary(self, top: int = 5) -> list[dict]:
+        """Top procedure codes by total paid, with claim count, average billed
+        and denial rate. Illustrative synthetic metrics."""
+        store = self.load_store()
+        procs: dict[str, dict] = {}
+        for row in store.values():
+            p = procs.setdefault(row["procedure_code"] or "Unknown",
+                                 {"code": row["procedure_code"] or "Unknown",
+                                  "claims": 0, "denied": 0, "billed": 0.0, "paid": 0.0})
+            p["claims"] += 1
+            p["denied"] += row["status"] == "denied"
+            p["billed"] += float(row["billed_amount"] or 0)
+            p["paid"] += float(row["paid_amount"] or 0)
+        out = [{"code": p["code"], "claims": p["claims"],
+                "avg_billed": round(p["billed"] / p["claims"], 2),
+                "paid": round(p["paid"], 2),
+                "denial_rate": round(p["denied"] / p["claims"], 4)}
+               for p in procs.values()]
+        return sorted(out, key=lambda r: (-r["paid"], r["code"]))[:top]
