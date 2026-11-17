@@ -15,7 +15,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     plan_perf: list[dict] | None = None,
                     procedures: list[dict] | None = None,
                     utilization: dict | None = None,
-                    age_bands: list[dict] | None = None) -> str:
+                    age_bands: list[dict] | None = None,
+                    reasons_by_plan: dict | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -68,6 +69,11 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Member | Claims | Paid |", "| --- | ---: | ---: |"]
         for r in utilization["top"]:
             lines.append(f"| {r['member_id']} | {r['claims']} | ${r['paid']:,.0f} |")
+    if reasons_by_plan:
+        lines += ["", "## Top denial reason by plan", "",
+                  "| Plan | Denials | Top reason | Count |", "| --- | ---: | --- | ---: |"]
+        for plan, reasons in reasons_by_plan.items():
+            lines.append(f"| {plan} | {sum(c for _, c in reasons)} | {reasons[0][0]} | {reasons[0][1]} |")
     if age_bands:
         lines += ["", "## Cost by age band", "", "![Average paid by age band](age_band_costs.png)"]
     lines += [

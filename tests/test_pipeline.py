@@ -161,3 +161,26 @@ def test_age_band_chart_written(tmp_path):
     assert report.plot_age_band_costs(bands, tmp_path / "a.png")
     assert (tmp_path / "a.png").stat().st_size > 1000
     assert report.plot_age_band_costs([], tmp_path / "b.png") is False
+
+
+def test_denial_reasons_by_plan(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    den = dict(status="denied", paid_amount=0, allowed_amount=0, billed_amount=100)
+    pipe.ingest([
+        make_valid("CLM-1", plan_type="PPO", denial_reason="duplicate claim", **den),
+        make_valid("CLM-2", plan_type="PPO", denial_reason="duplicate claim", **den),
+        make_valid("CLM-3", plan_type="PPO", denial_reason="timely filing exceeded", **den),
+        make_valid("CLM-4", plan_type="HMO", denial_reason="out-of-network provider", **den),
+        make_valid("CLM-5", plan_type="HMO"),  # paid, ignored
+    ])
+    out = pipe.denial_reasons_by_plan()
+    assert list(out) == ["HMO", "PPO"]
+    assert out["PPO"] == [("duplicate claim", 2), ("timely filing exceeded", 1)]
+    assert out["HMO"] == [("out-of-network provider", 1)]
+
+
+def test_report_renders_reasons_by_plan():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, reasons_by_plan={
+        "PPO": [("duplicate claim", 2), ("timely filing exceeded", 1)]})
+    assert "| PPO | 3 | duplicate claim | 2 |" in md

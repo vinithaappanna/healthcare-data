@@ -1,8 +1,8 @@
 # Healthcare Data - claims pipeline report
 
-Generated 2026-11-17 18:06 UTC. All data is synthetic - no real member, patient or plan information.
+Generated 2026-11-17 23:07 UTC. All data is synthetic - no real member, patient or plan information.
 
-**1220 claims** in store. Billed $3,582,459, paid $2,076,761, denied 120 overall.
+**1340 claims** in store. Billed $3,811,822, paid $2,213,686, denied 134 overall.
 
 ## Monthly financials
 
@@ -20,53 +20,62 @@ Generated 2026-11-17 18:06 UTC. All data is synthetic - no real member, patient 
 | 2026-08 | 50 | $87,251 | $70,911 | $55,220 | 18.0% |
 | 2026-09 | 28 | $97,162 | $80,729 | $53,482 | 7.1% |
 | 2026-10 | 47 | $71,505 | $55,063 | $42,442 | 8.5% |
-| 2026-11 | 741 | $2,312,496 | $1,782,264 | $1,285,311 | 9.6% |
+| 2026-11 | 861 | $2,541,860 | $1,955,023 | $1,422,236 | 9.9% |
 
 ## Denial reasons
 
-- not medically necessary (33)
-- timely filing exceeded (28)
-- duplicate claim (22)
+- not medically necessary (35)
+- timely filing exceeded (30)
+- duplicate claim (28)
 - missing prior authorization (21)
-- out-of-network provider (17)
+- out-of-network provider (21)
 
 ## Plan mix
 
-- HMO: 328
-- PPO: 324
-- EPO: 292
-- HDHP: 276
+- HMO: 361
+- PPO: 347
+- EPO: 331
+- HDHP: 301
 
 ## Plan performance
 
 | Plan | Claims | Denial rate | Paid / billed |
 | --- | ---: | ---: | ---: |
-| HMO | 328 | 10.1% | 63.2% |
-| PPO | 324 | 10.5% | 52.6% |
-| EPO | 292 | 9.6% | 54.4% |
-| HDHP | 276 | 9.4% | 60.6% |
+| HMO | 361 | 9.7% | 62.8% |
+| PPO | 347 | 11.2% | 52.7% |
+| EPO | 331 | 10.0% | 55.9% |
+| HDHP | 301 | 9.3% | 60.4% |
 
 ## Top procedures by paid amount
 
 | Code | Claims | Avg billed | Paid | Denial rate |
 | --- | ---: | ---: | ---: | ---: |
-| 27447 | 123 | $24,746 | $1,760,866 | 11.4% |
-| 43239 | 123 | $2,057 | $145,481 | 10.6% |
-| 99285 | 118 | $1,070 | $73,955 | 7.6% |
-| 70450 | 126 | $667 | $51,855 | 4.8% |
-| 99214 | 105 | $165 | $9,641 | 14.3% |
+| 27447 | 130 | $24,730 | $1,867,625 | 10.8% |
+| 43239 | 135 | $2,074 | $161,170 | 10.4% |
+| 99285 | 131 | $1,079 | $78,645 | 11.5% |
+| 70450 | 137 | $669 | $56,408 | 5.1% |
+| 99214 | 117 | $167 | $11,077 | 13.7% |
 
 ## Member utilization
 
-52 of 917 synthetic members have 3+ claims and account for 9.5% of paid dollars.
+64 of 977 synthetic members have 3+ claims and account for 10.8% of paid dollars.
 
 | Member | Claims | Paid |
 | --- | ---: | ---: |
 | MBR-1424 | 5 | $14,713 |
+| MBR-0746 | 5 | $11,386 |
 | MBR-1542 | 4 | $27,681 |
 | MBR-0471 | 4 | $16,601 |
-| MBR-0746 | 4 | $11,296 |
-| MBR-1062 | 4 | $9,888 |
+| MBR-0369 | 4 | $14,138 |
+
+## Top denial reason by plan
+
+| Plan | Denials | Top reason | Count |
+| --- | ---: | --- | ---: |
+| EPO | 33 | not medically necessary | 10 |
+| HDHP | 28 | not medically necessary | 7 |
+| HMO | 35 | not medically necessary | 10 |
+| PPO | 39 | timely filing exceeded | 12 |
 
 ## Cost by age band
 

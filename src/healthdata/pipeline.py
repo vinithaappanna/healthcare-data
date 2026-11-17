@@ -195,3 +195,18 @@ class Pipeline:
                  "avg_paid": round(b["paid"] / b["claims"], 2),
                  "denial_rate": round(b["denied"] / b["claims"], 4)}
                 for name, b in sorted(bands.items(), key=lambda kv: (order.get(kv[0], 99), kv[0]))]
+
+    def denial_reasons_by_plan(self) -> dict[str, list[tuple[str, int]]]:
+        """Plan type -> denial reasons with counts, most common first.
+
+        Shows whether a plan's denials are driven by a different reason than
+        the book overall (e.g. prior authorization on one plan type).
+        Synthetic, illustrative.
+        """
+        store = self.load_store()
+        by_plan: dict[str, Counter] = {}
+        for row in store.values():
+            if row["status"] == "denied" and row["denial_reason"]:
+                by_plan.setdefault(row["plan_type"] or "Unknown", Counter())[row["denial_reason"]] += 1
+        return {plan: sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))
+                for plan, c in sorted(by_plan.items())}

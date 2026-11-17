@@ -54,7 +54,8 @@ def main() -> int:
                                plan_perf=pipe.plan_performance(),
                                procedures=pipe.procedure_summary(),
                                utilization=pipe.high_utilizers(),
-                               age_bands=pipe.age_band_costs()),
+                               age_bands=pipe.age_band_costs(),
+                               reasons_by_plan=pipe.denial_reasons_by_plan()),
         encoding="utf-8",
     )
     if report.plot_monthly_financials(monthly, REPORTS / "monthly_financials.png"):
