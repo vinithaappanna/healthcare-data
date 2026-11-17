@@ -13,7 +13,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     plan_mix: list[tuple[str, int]], total_claims: int,
                     generated_at: dt.datetime | None = None,
                     plan_perf: list[dict] | None = None,
-                    procedures: list[dict] | None = None) -> str:
+                    procedures: list[dict] | None = None,
+                    utilization: dict | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -58,6 +59,14 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for r in procedures:
             lines.append(f"| {r['code']} | {r['claims']} | ${r['avg_billed']:,.0f} | "
                          f"${r['paid']:,.0f} | {r['denial_rate']:.1%} |")
+    if utilization and utilization.get("members_total"):
+        lines += ["", "## Member utilization", "",
+                  f"{utilization['high_utilizers']} of {utilization['members_total']} "
+                  f"synthetic members have 3+ claims and account for "
+                  f"{utilization['share_of_paid']:.1%} of paid dollars.", "",
+                  "| Member | Claims | Paid |", "| --- | ---: | ---: |"]
+        for r in utilization["top"]:
+            lines.append(f"| {r['member_id']} | {r['claims']} | ${r['paid']:,.0f} |")
     lines += [
         "",
         "![Monthly billed vs paid](monthly_financials.png)",

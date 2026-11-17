@@ -52,7 +52,8 @@ def main() -> int:
     (REPORTS / "claims_report.md").write_text(
         report.render_markdown(monthly, reasons, mix, stats["total"],
                                plan_perf=pipe.plan_performance(),
-                               procedures=pipe.procedure_summary()),
+                               procedures=pipe.procedure_summary(),
+                               utilization=pipe.high_utilizers()),
         encoding="utf-8",
     )
     if report.plot_monthly_financials(monthly, REPORTS / "monthly_financials.png"):

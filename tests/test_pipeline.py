@@ -113,3 +113,30 @@ def test_report_includes_procedure_table():
     md = report.render_markdown([], [], [], 0, procedures=[
         {"code": "99213", "claims": 2, "avg_billed": 150.0, "paid": 70.0, "denial_rate": 0.5}])
     assert "## Top procedures by paid amount" in md and "| 99213 | 2 |" in md
+
+
+def test_high_utilizers_threshold_and_share(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest(
+        [make_valid(f"CLM-H{i}", member_id="MBR-0001", billed_amount=100,
+                    allowed_amount=80, paid_amount=60) for i in range(3)]
+        + [make_valid("CLM-L1", member_id="MBR-0002", billed_amount=100,
+                      allowed_amount=80, paid_amount=60)])
+    out = pipe.high_utilizers(min_claims=3)
+    assert out["members_total"] == 2 and out["high_utilizers"] == 1
+    assert out["share_of_paid"] == 0.75  # 180 of 240
+    assert out["top"] == [{"member_id": "MBR-0001", "claims": 3, "paid": 180.0}]
+    assert pipe.high_utilizers(min_claims=4)["high_utilizers"] == 0
+
+
+def test_high_utilizers_empty_store(tmp_path):
+    out = Pipeline(tmp_path / "none.csv").high_utilizers()
+    assert out["members_total"] == 0 and out["share_of_paid"] == 0.0
+
+
+def test_report_includes_utilization_section():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, utilization={
+        "members_total": 10, "high_utilizers": 2, "share_of_paid": 0.25,
+        "top": [{"member_id": "MBR-0001", "claims": 4, "paid": 900.0}]})
+    assert "## Member utilization" in md and "| MBR-0001 | 4 | $900 |" in md

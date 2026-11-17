@@ -151,3 +151,29 @@ class Pipeline:
                 "denial_rate": round(p["denied"] / p["claims"], 4)}
                for p in procs.values()]
         return sorted(out, key=lambda r: (-r["paid"], r["code"]))[:top]
+
+    def high_utilizers(self, min_claims: int = 3, top: int = 5) -> dict:
+        """Members with many claims: a standard utilization-management view.
+
+        Returns {"members_total", "high_utilizers", "share_of_paid", "top"}
+        where high utilizers have at least `min_claims` claims in the store.
+        Synthetic data, illustrative threshold.
+        """
+        store = self.load_store()
+        members: dict[str, dict] = {}
+        for row in store.values():
+            m = members.setdefault(row["member_id"], {"member_id": row["member_id"],
+                                                      "claims": 0, "paid": 0.0})
+            m["claims"] += 1
+            m["paid"] += float(row["paid_amount"] or 0)
+        heavy = [m for m in members.values() if m["claims"] >= min_claims]
+        total_paid = sum(m["paid"] for m in members.values())
+        heavy_paid = sum(m["paid"] for m in heavy)
+        top_rows = sorted(heavy, key=lambda m: (-m["claims"], -m["paid"], m["member_id"]))[:top]
+        return {
+            "members_total": len(members),
+            "high_utilizers": len(heavy),
+            "share_of_paid": round(heavy_paid / total_paid, 4) if total_paid else 0.0,
+            "top": [{"member_id": m["member_id"], "claims": m["claims"],
+                     "paid": round(m["paid"], 2)} for m in top_rows],
+        }
