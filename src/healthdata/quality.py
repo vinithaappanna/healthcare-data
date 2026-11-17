@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .claims import PROCEDURES, DIAGNOSES
+
+_RANGES = {code: rng for code, _d, rng in PROCEDURES}
+_DX = {code for code, _d in DIAGNOSES}
+
 
 def check_amount_consistency(rows: list[dict]) -> list[str]:
     """Paid must not exceed allowed, allowed must not exceed billed."""
@@ -44,6 +49,29 @@ def check_duplicate_members_per_claim(rows: list[dict]) -> list[str]:
     return issues
 
 
+def check_billed_in_procedure_range(rows: list[dict], slack: float = 1.01) -> list[str]:
+    """Billed amount should sit inside the illustrative range for its procedure
+    code, and the code itself must be a known one (illustrative reference list)."""
+    issues = []
+    for row in rows:
+        rng = _RANGES.get(row.get("procedure_code"))
+        if rng is None:
+            issues.append(f"{row['claim_id']}: unknown procedure code {row.get('procedure_code')!r}")
+            continue
+        try:
+            billed = float(row["billed_amount"])
+        except (TypeError, ValueError):
+            continue  # reported by the amount-consistency check
+        if not rng[0] / slack <= billed <= rng[1] * slack:
+            issues.append(f"{row['claim_id']}: billed {billed} outside {rng} for {row['procedure_code']}")
+    return issues
+
+
+def check_known_diagnosis(rows: list[dict]) -> list[str]:
+    return [f"{r['claim_id']}: unknown diagnosis code {r.get('diagnosis_code')!r}"
+            for r in rows if r.get("diagnosis_code") not in _DX]
+
+
 def run_all(store_path) -> list[str]:
     """Run every check against the claims CSV. Returns all issues found."""
     import csv
@@ -57,4 +85,6 @@ def run_all(store_path) -> list[str]:
     issues += check_amount_consistency(rows)
     issues += check_denial_reasons(rows)
     issues += check_duplicate_members_per_claim(rows)
+    issues += check_billed_in_procedure_range(rows)
+    issues += check_known_diagnosis(rows)
     return issues

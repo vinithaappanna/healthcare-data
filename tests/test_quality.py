@@ -31,3 +31,23 @@ def test_denied_with_payment_flagged():
 def test_duplicate_claim_ids_flagged():
     rows = [{"claim_id": "C3"}, {"claim_id": "C3"}]
     assert check_duplicate_members_per_claim(rows)
+
+
+def test_billed_outside_procedure_range_flagged():
+    from healthdata.quality import check_billed_in_procedure_range
+    rows = [
+        {"claim_id": "A", "procedure_code": "99213", "billed_amount": "120"},
+        {"claim_id": "B", "procedure_code": "99213", "billed_amount": "9000"},
+        {"claim_id": "C", "procedure_code": "00000", "billed_amount": "10"},
+    ]
+    issues = check_billed_in_procedure_range(rows)
+    assert len(issues) == 2
+    assert any("B:" in i and "outside" in i for i in issues)
+    assert any("C:" in i and "unknown procedure" in i for i in issues)
+
+
+def test_unknown_diagnosis_flagged():
+    from healthdata.quality import check_known_diagnosis
+    rows = [{"claim_id": "A", "diagnosis_code": "I10"},
+            {"claim_id": "B", "diagnosis_code": "ZZZ"}]
+    assert len(check_known_diagnosis(rows)) == 1
