@@ -30,6 +30,7 @@ seeded RNG - no real member, patient, provider or plan data anywhere.
 pip install -r requirements.txt
 python examples/quick_demo.py       # 500 synthetic claims through the pipeline
 python scripts/daily_update.py      # full update round with quality gates
+python scripts/query.py member MBR-0076   # claim / member / plan lookups
 python -m pytest                    # offline test suite
 ```
 
