@@ -210,3 +210,30 @@ def test_report_renders_duplicates_section_even_when_empty():
         "member_id": "MBR-0001", "procedure_code": "99213", "service_date": "2026-11-01",
         "claim_ids": ["A", "B"], "paid": 90.0}])
     assert "| MBR-0001 | 99213 | 2026-11-01 | 2 | $90 |" in md
+
+
+def test_monthly_trend_changes(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([
+        make_valid("CLM-1", service_date="2026-09-05", paid_amount=100, allowed_amount=100, billed_amount=200),
+        make_valid("CLM-2", service_date="2026-09-06", paid_amount=100, allowed_amount=100, billed_amount=200),
+        make_valid("CLM-3", service_date="2026-10-05", paid_amount=300, allowed_amount=300, billed_amount=400),
+        make_valid("CLM-4", service_date="2026-10-06", status="denied", paid_amount=0,
+                   allowed_amount=0, billed_amount=100, denial_reason="duplicate claim"),
+        make_valid("CLM-5", service_date="2026-10-07", paid_amount=0, allowed_amount=0,
+                   billed_amount=100, status="denied", denial_reason="duplicate claim"),
+        make_valid("CLM-6", service_date="2026-10-08", paid_amount=100, allowed_amount=100, billed_amount=200),
+    ])
+    first, second = pipe.monthly_trend()
+    assert first["claims_change"] is None and first["denial_rate_pp"] is None
+    assert second["claims_change"] == 1.0   # 2 -> 4 claims
+    assert second["paid_change"] == 1.0     # 200 -> 400
+    assert second["denial_rate_pp"] == 50.0  # 0% -> 50%
+
+
+def test_report_renders_trend_table():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, trend=[
+        {"month": "2026-09", "claims_change": None, "paid_change": None, "denial_rate_pp": None},
+        {"month": "2026-10", "claims_change": 0.25, "paid_change": -0.1, "denial_rate_pp": 1.5}])
+    assert "| 2026-10 | +25.0% | -10.0% | +1.50 pp |" in md and "| 2026-09 | - | - | - |" in md

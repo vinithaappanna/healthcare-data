@@ -56,7 +56,9 @@ def main() -> int:
                                utilization=pipe.high_utilizers(),
                                age_bands=pipe.age_band_costs(),
                                reasons_by_plan=pipe.denial_reasons_by_plan(),
-                               duplicates=pipe.potential_duplicates()),
+                               duplicates=pipe.potential_duplicates(),
+                               trend=[t for t in pipe.monthly_trend()
+                                      if t["month"] < today.strftime("%Y-%m")]),
         encoding="utf-8",
     )
     if report.plot_monthly_financials(monthly, REPORTS / "monthly_financials.png"):

@@ -17,7 +17,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     utilization: dict | None = None,
                     age_bands: list[dict] | None = None,
                     reasons_by_plan: dict | None = None,
-                    duplicates: list[dict] | None = None) -> str:
+                    duplicates: list[dict] | None = None,
+                    trend: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -75,6 +76,14 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Plan | Denials | Top reason | Count |", "| --- | ---: | --- | ---: |"]
         for plan, reasons in reasons_by_plan.items():
             lines.append(f"| {plan} | {sum(c for _, c in reasons)} | {reasons[0][0]} | {reasons[0][1]} |")
+    if trend and len(trend) > 1:
+        def fmt(v, suffix=""):
+            return "-" if v is None else f"{v:+.1%}" if suffix == "%" else f"{v:+.2f} pp"
+        lines += ["", "## Month-over-month trend (last 6 complete months)", "",
+                  "| Month | Claims | Paid | Denial rate |", "| --- | ---: | ---: | ---: |"]
+        for t in trend[-6:]:
+            lines.append(f"| {t['month']} | {fmt(t['claims_change'], '%')} | "
+                         f"{fmt(t['paid_change'], '%')} | {fmt(t['denial_rate_pp'])} |")
     if duplicates is not None:
         lines += ["", "## Potential duplicate services", "",
                   f"{len(duplicates)} groups share a member, procedure and service date "

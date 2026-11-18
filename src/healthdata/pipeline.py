@@ -230,3 +230,22 @@ class Pipeline:
                             "claim_ids": sorted(r["claim_id"] for r in rows),
                             "paid": round(sum(float(r["paid_amount"] or 0) for r in rows), 2)})
         return sorted(out, key=lambda g: (-g["paid"], g["member_id"], g["service_date"]))
+
+    def monthly_trend(self) -> list[dict]:
+        """Month-over-month change in claim volume, paid dollars and denial
+        rate (percentage points). The first month has no prior, so its
+        changes are None. Synthetic, illustrative."""
+        months = self.monthly_financials()
+        out = []
+        prev = None
+        for m in months:
+            def pct(cur, old):
+                return round((cur - old) / old, 4) if old else None
+            out.append({
+                "month": m["month"],
+                "claims_change": pct(m["claims"], prev["claims"]) if prev else None,
+                "paid_change": pct(m["paid"], prev["paid"]) if prev else None,
+                "denial_rate_pp": round((m["denial_rate"] - prev["denial_rate"]) * 100, 2) if prev else None,
+            })
+            prev = m
+        return out
