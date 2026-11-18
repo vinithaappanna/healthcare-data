@@ -210,3 +210,23 @@ class Pipeline:
                 by_plan.setdefault(row["plan_type"] or "Unknown", Counter())[row["denial_reason"]] += 1
         return {plan: sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))
                 for plan, c in sorted(by_plan.items())}
+
+    def potential_duplicates(self) -> list[dict]:
+        """Groups of claims with the same member, procedure and service date.
+
+        A classic payment-integrity screen: same service billed more than
+        once under different claim ids. Informational (a review queue, not a
+        quality failure) - repeat services can be legitimate. Synthetic data.
+        """
+        groups: dict[tuple, list[dict]] = {}
+        for row in self.load_store().values():
+            key = (row["member_id"], row["procedure_code"], row["service_date"])
+            groups.setdefault(key, []).append(row)
+        out = []
+        for (member, code, day), rows in groups.items():
+            if len(rows) > 1:
+                out.append({"member_id": member, "procedure_code": code,
+                            "service_date": day,
+                            "claim_ids": sorted(r["claim_id"] for r in rows),
+                            "paid": round(sum(float(r["paid_amount"] or 0) for r in rows), 2)})
+        return sorted(out, key=lambda g: (-g["paid"], g["member_id"], g["service_date"]))

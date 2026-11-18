@@ -184,3 +184,29 @@ def test_report_renders_reasons_by_plan():
     md = report.render_markdown([], [], [], 0, reasons_by_plan={
         "PPO": [("duplicate claim", 2), ("timely filing exceeded", 1)]})
     assert "| PPO | 3 | duplicate claim | 2 |" in md
+
+
+def test_potential_duplicates_groups_same_service(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    same = dict(member_id="MBR-0001", procedure_code="99213", service_date="2026-11-01")
+    pipe.ingest([
+        make_valid("CLM-1", paid_amount=50, allowed_amount=60, billed_amount=100, **same),
+        make_valid("CLM-2", paid_amount=40, allowed_amount=60, billed_amount=100, **same),
+        make_valid("CLM-3", member_id="MBR-0001", procedure_code="99213",
+                   service_date="2026-11-02"),  # different date
+        make_valid("CLM-4", member_id="MBR-0002", procedure_code="99213",
+                   service_date="2026-11-01"),  # different member
+    ])
+    out = pipe.potential_duplicates()
+    assert len(out) == 1
+    assert out[0]["claim_ids"] == ["CLM-1", "CLM-2"] and out[0]["paid"] == 90.0
+    assert Pipeline(tmp_path / "empty.csv").potential_duplicates() == []
+
+
+def test_report_renders_duplicates_section_even_when_empty():
+    from healthdata import report
+    assert "0 groups" in report.render_markdown([], [], [], 0, duplicates=[])
+    md = report.render_markdown([], [], [], 0, duplicates=[{
+        "member_id": "MBR-0001", "procedure_code": "99213", "service_date": "2026-11-01",
+        "claim_ids": ["A", "B"], "paid": 90.0}])
+    assert "| MBR-0001 | 99213 | 2026-11-01 | 2 | $90 |" in md
