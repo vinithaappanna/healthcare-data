@@ -18,7 +18,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     age_bands: list[dict] | None = None,
                     reasons_by_plan: dict | None = None,
                     duplicates: list[dict] | None = None,
-                    trend: list[dict] | None = None) -> str:
+                    trend: list[dict] | None = None,
+                    cost_sharing: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -56,6 +57,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for r in plan_perf:
             lines.append(f"| {r['plan']} | {r['claims']} | {r['denial_rate']:.1%} | "
                          f"{r['paid_to_billed']:.1%} |")
+    if cost_sharing:
+        lines += ["", "## Cost sharing by plan (non-denied claims)", "",
+                  "Network discount = 1 - allowed/billed. Member cost share = (allowed - paid)/allowed. "
+                  "Illustrative synthetic rules, not real benefit design.", "",
+                  "| Plan | Claims | Network discount | Member cost share |",
+                  "| --- | ---: | ---: | ---: |"]
+        for r in cost_sharing:
+            lines.append(f"| {r['plan']} | {r['claims']} | {r['network_discount']:.1%} | "
+                         f"{r['member_cost_share']:.1%} |")
     if procedures:
         lines += ["", "## Top procedures by paid amount", "",
                   "| Code | Claims | Avg billed | Paid | Denial rate |",

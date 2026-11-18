@@ -52,6 +52,7 @@ def main() -> int:
     (REPORTS / "claims_report.md").write_text(
         report.render_markdown(monthly, reasons, mix, stats["total"],
                                plan_perf=pipe.plan_performance(),
+                               cost_sharing=pipe.plan_cost_sharing(),
                                procedures=pipe.procedure_summary(),
                                utilization=pipe.high_utilizers(),
                                age_bands=pipe.age_band_costs(),

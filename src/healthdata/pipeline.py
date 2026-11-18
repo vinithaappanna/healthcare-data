@@ -132,6 +132,27 @@ class Pipeline:
                for p in plans.values()]
         return sorted(out, key=lambda r: (-r["claims"], r["plan"]))
 
+    def plan_cost_sharing(self) -> list[dict]:
+        """Per plan type, on non-denied claims: network discount (billed to
+        allowed) and member cost share (allowed minus paid, as a share of
+        allowed). Illustrative synthetic metrics, not real benefit design."""
+        plans: dict[str, dict] = {}
+        for row in self.load_store().values():
+            if row["status"] == "denied":
+                continue
+            p = plans.setdefault(row["plan_type"] or "Unknown",
+                                 {"claims": 0, "billed": 0.0, "allowed": 0.0, "paid": 0.0})
+            p["claims"] += 1
+            p["billed"] += float(row["billed_amount"] or 0)
+            p["allowed"] += float(row["allowed_amount"] or 0)
+            p["paid"] += float(row["paid_amount"] or 0)
+        out = [{"plan": name, "claims": p["claims"],
+                "network_discount": round(1 - p["allowed"] / p["billed"], 4) if p["billed"] else 0.0,
+                "member_cost_share": round((p["allowed"] - p["paid"]) / p["allowed"], 4)
+                if p["allowed"] else 0.0}
+               for name, p in plans.items()]
+        return sorted(out, key=lambda r: (-r["member_cost_share"], r["plan"]))
+
     def procedure_summary(self, top: int = 5) -> list[dict]:
         """Top procedure codes by total paid, with claim count, average billed
         and denial rate. Illustrative synthetic metrics."""

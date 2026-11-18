@@ -237,3 +237,27 @@ def test_report_renders_trend_table():
         {"month": "2026-09", "claims_change": None, "paid_change": None, "denial_rate_pp": None},
         {"month": "2026-10", "claims_change": 0.25, "paid_change": -0.1, "denial_rate_pp": 1.5}])
     assert "| 2026-10 | +25.0% | -10.0% | +1.50 pp |" in md and "| 2026-09 | - | - | - |" in md
+
+
+def test_plan_cost_sharing_math_and_excludes_denied(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([
+        make_valid("CLM-1", plan_type="PPO", billed_amount=100, allowed_amount=80, paid_amount=60),
+        make_valid("CLM-2", plan_type="PPO", billed_amount=100, allowed_amount=80, paid_amount=40),
+        make_valid("CLM-3", plan_type="HMO", billed_amount=100, allowed_amount=50, paid_amount=50),
+        make_valid("CLM-4", plan_type="HMO", billed_amount=900, allowed_amount=0, paid_amount=0,
+                   status="denied", denial_reason="duplicate claim"),
+    ])
+    out = {r["plan"]: r for r in pipe.plan_cost_sharing()}
+    assert out["PPO"]["network_discount"] == 0.2          # 1 - 160/200
+    assert out["PPO"]["member_cost_share"] == 0.375       # (160-100)/160
+    assert out["HMO"] == {"plan": "HMO", "claims": 1, "network_discount": 0.5,
+                          "member_cost_share": 0.0}       # denied claim ignored
+    assert [r["plan"] for r in pipe.plan_cost_sharing()] == ["PPO", "HMO"]  # highest share first
+
+
+def test_cost_sharing_section_renders_with_illustrative_label():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, cost_sharing=[
+        {"plan": "PPO", "claims": 2, "network_discount": 0.2, "member_cost_share": 0.375}])
+    assert "| PPO | 2 | 20.0% | 37.5% |" in md and "Illustrative" in md
