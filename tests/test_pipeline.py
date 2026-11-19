@@ -297,3 +297,37 @@ def test_outlier_section_renders_both_states():
          "overall_rate": 0.1, "z": 5.2}])
     assert "| HMO | 2026-10 | 100 | 40.0% | 10.0% | +5.20 |" in md and "not a finding" in md
     assert "No plan/month cells" in report.render_markdown([], [], [], 0, outliers=[])
+
+
+def test_paid_concentration_math(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    paid = [1000] + [10] * 99                               # 100 claims, total 1990
+    pipe.ingest([make_valid(f"CLM-{i}", billed_amount=2000, allowed_amount=1500, paid_amount=p)
+                 for i, p in enumerate(paid)])
+    out = pipe.paid_concentration()
+    assert out["claims"] == 100 and out["total_paid"] == 1990.0
+    tiers = {t["top_pct"]: t for t in out["tiers"]}
+    assert tiers[0.01]["claims"] == 1 and tiers[0.01]["share_of_paid"] == 0.5025   # 1000/1990
+    assert tiers[0.05]["claims"] == 5 and tiers[0.05]["share_of_paid"] == 0.5226   # 1040/1990
+    assert tiers[0.10]["claims"] == 10
+
+
+def test_paid_concentration_tiny_and_empty_stores(tmp_path):
+    assert Pipeline(tmp_path / "e.csv").paid_concentration()["tiers"] == []
+    pipe = Pipeline(tmp_path / "one.csv")
+    pipe.ingest([make_valid("CLM-1", paid_amount=60)])
+    out = pipe.paid_concentration()
+    assert [t["claims"] for t in out["tiers"]] == [1, 1, 1]       # at least one claim per tier
+    assert all(t["share_of_paid"] == 1.0 for t in out["tiers"])
+    pipe2 = Pipeline(tmp_path / "den.csv")
+    pipe2.ingest([make_valid("CLM-D", paid_amount=0, allowed_amount=0, status="denied",
+                             denial_reason="duplicate claim")])
+    assert pipe2.paid_concentration()["tiers"] == []              # zero total: no division
+
+
+def test_concentration_section_renders():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, concentration={
+        "claims": 100, "total_paid": 1990.0,
+        "tiers": [{"top_pct": 0.01, "claims": 1, "share_of_paid": 0.5025}]})
+    assert "| top 1% | 1 | 50.2% |" in md or "| top 1% | 1 | 50.3% |" in md

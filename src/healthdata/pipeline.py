@@ -183,6 +183,25 @@ class Pipeline:
                             "z": round(score, 2)})
         return sorted(out, key=lambda r: (-abs(r["z"]), r["plan"], r["month"]))
 
+    def paid_concentration(self, tiers=(0.01, 0.05, 0.10)) -> dict:
+        """Share of total paid dollars held by the top X% of claims (by paid).
+
+        Classic insurance concentration view: a few large claims usually
+        carry a big share of spend. Each tier takes ceil(n * pct) claims, at
+        least one. Synthetic data, illustrative."""
+        import math
+
+        paid = sorted((float(r["paid_amount"] or 0) for r in self.load_store().values()), reverse=True)
+        total = sum(paid)
+        out = {"claims": len(paid), "total_paid": round(total, 2), "tiers": []}
+        if not paid or total <= 0:
+            return out
+        for pct in tiers:
+            k = max(1, math.ceil(len(paid) * pct))
+            out["tiers"].append({"top_pct": pct, "claims": k,
+                                 "share_of_paid": round(sum(paid[:k]) / total, 4)})
+        return out
+
     def procedure_summary(self, top: int = 5) -> list[dict]:
         """Top procedure codes by total paid, with claim count, average billed
         and denial rate. Illustrative synthetic metrics."""

@@ -20,7 +20,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     duplicates: list[dict] | None = None,
                     trend: list[dict] | None = None,
                     cost_sharing: list[dict] | None = None,
-                    outliers: list[dict] | None = None) -> str:
+                    outliers: list[dict] | None = None,
+                    concentration: dict | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -79,6 +80,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                              f"{o['overall_rate']:.1%} | {o['z']:+.2f} |")
         else:
             lines += ["", "No plan/month cells outside the screen."]
+    if concentration and concentration.get("tiers"):
+        lines += ["", "## Paid-amount concentration", "",
+                  f"Share of total paid ({concentration['claims']} claims) held by the largest claims. "
+                  "Synthetic data, illustrative.", "",
+                  "| Top claims | Count | Share of paid |", "| --- | ---: | ---: |"]
+        for t in concentration["tiers"]:
+            lines.append(f"| top {t['top_pct']:.0%} | {t['claims']} | {t['share_of_paid']:.1%} |")
     if procedures:
         lines += ["", "## Top procedures by paid amount", "",
                   "| Code | Claims | Avg billed | Paid | Denial rate |",

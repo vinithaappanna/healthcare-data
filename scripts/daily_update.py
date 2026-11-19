@@ -54,6 +54,7 @@ def main() -> int:
                                plan_perf=pipe.plan_performance(),
                                cost_sharing=pipe.plan_cost_sharing(),
                                outliers=pipe.denial_rate_outliers(),
+                               concentration=pipe.paid_concentration(),
                                procedures=pipe.procedure_summary(),
                                utilization=pipe.high_utilizers(),
                                age_bands=pipe.age_band_costs(),
