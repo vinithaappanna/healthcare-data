@@ -51,3 +51,40 @@ def test_unknown_diagnosis_flagged():
     rows = [{"claim_id": "A", "diagnosis_code": "I10"},
             {"claim_id": "B", "diagnosis_code": "ZZZ"}]
     assert len(check_known_diagnosis(rows)) == 1
+
+
+def test_service_date_checks():
+    import datetime as dt
+    from healthdata.quality import check_service_dates
+    today = dt.date(2026, 11, 19)
+    rows = [{"claim_id": "OK", "service_date": "2026-11-19"},          # today is fine
+            {"claim_id": "FUT", "service_date": "2026-11-20"},
+            {"claim_id": "OLD", "service_date": "2024-11-01"},
+            {"claim_id": "EDGE", "service_date": "2024-11-18"},         # 731 days: flagged
+            {"claim_id": "BAD", "service_date": "11/19/2026"},
+            {"claim_id": "EMPTY", "service_date": ""}]
+    issues = check_service_dates(rows, today=today)
+    flagged = {i.split(":")[0] for i in issues}
+    assert flagged == {"FUT", "OLD", "EDGE", "BAD", "EMPTY"}
+    assert any("in the future" in i for i in issues) and any("unparseable" in i for i in issues)
+    assert check_service_dates([{"claim_id": "X", "service_date": "2024-11-20"}], today=today) == []  # 729 days ok; exactly 730 also ok
+
+
+def test_run_all_catches_future_dates_in_store(tmp_path):
+    import csv
+    path = tmp_path / "claims.csv"
+    Pipeline(path).ingest(ClaimGenerator(seed=3).claims(5))
+    rows = list(csv.DictReader(path.open()))
+    rows[0]["service_date"] = "2999-01-01"
+    with path.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=rows[0].keys())
+        w.writeheader()
+        w.writerows(rows)
+    assert any("in the future" in i for i in run_all(path))
+
+
+def test_service_date_exactly_at_limit_passes():
+    import datetime as dt
+    from healthdata.quality import check_service_dates
+    assert check_service_dates([{"claim_id": "L", "service_date": "2024-11-19"}],
+                               today=dt.date(2026, 11, 19)) == []

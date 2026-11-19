@@ -2,6 +2,7 @@
 strings; empty means pass. Daily runs fail loudly on any issue."""
 from __future__ import annotations
 
+import datetime as dt
 from pathlib import Path
 
 from .claims import PROCEDURES, DIAGNOSES
@@ -72,6 +73,26 @@ def check_known_diagnosis(rows: list[dict]) -> list[str]:
             for r in rows if r.get("diagnosis_code") not in _DX]
 
 
+def check_service_dates(rows: list[dict], today: dt.date | None = None,
+                        max_age_days: int = 730) -> list[str]:
+    """Service dates must parse as ISO dates, not be in the future, and not be
+    older than `max_age_days` (a stale date usually means a bad extract)."""
+    today = today or dt.date.today()
+    issues = []
+    for r in rows:
+        raw = r.get("service_date") or ""
+        try:
+            day = dt.date.fromisoformat(raw)
+        except ValueError:
+            issues.append(f"{r['claim_id']}: unparseable service_date {raw!r}")
+            continue
+        if day > today:
+            issues.append(f"{r['claim_id']}: service_date {day} is in the future")
+        elif (today - day).days > max_age_days:
+            issues.append(f"{r['claim_id']}: service_date {day} is over {max_age_days} days old")
+    return issues
+
+
 def run_all(store_path) -> list[str]:
     """Run every check against the claims CSV. Returns all issues found."""
     import csv
@@ -87,4 +108,5 @@ def run_all(store_path) -> list[str]:
     issues += check_duplicate_members_per_claim(rows)
     issues += check_billed_in_procedure_range(rows)
     issues += check_known_diagnosis(rows)
+    issues += check_service_dates(rows)
     return issues

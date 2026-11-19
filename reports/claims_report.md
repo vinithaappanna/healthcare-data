@@ -1,8 +1,8 @@
 # Healthcare Data - claims pipeline report
 
-Generated 2026-11-19 05:11 UTC. All data is synthetic - no real member, patient or plan information.
+Generated 2026-11-19 10:11 UTC. All data is synthetic - no real member, patient or plan information.
 
-**2000 claims** in store. Billed $6,218,610, paid $3,628,084, denied 217 overall.
+**2120 claims** in store. Billed $6,663,250, paid $3,876,316, denied 232 overall.
 
 ## Monthly financials
 
@@ -20,31 +20,31 @@ Generated 2026-11-19 05:11 UTC. All data is synthetic - no real member, patient 
 | 2026-08 | 50 | $87,251 | $70,911 | $55,220 | 18.0% |
 | 2026-09 | 28 | $97,162 | $80,729 | $53,482 | 7.1% |
 | 2026-10 | 47 | $71,505 | $55,063 | $42,442 | 8.5% |
-| 2026-11 | 1521 | $4,948,647 | $3,826,397 | $2,836,635 | 11.0% |
+| 2026-11 | 1641 | $5,393,287 | $4,175,638 | $3,084,867 | 11.2% |
 
 ## Denial reasons
 
-- duplicate claim (51)
-- not medically necessary (47)
-- timely filing exceeded (43)
-- out-of-network provider (40)
-- missing prior authorization (36)
+- duplicate claim (55)
+- not medically necessary (49)
+- timely filing exceeded (46)
+- out-of-network provider (44)
+- missing prior authorization (39)
 
 ## Plan mix
 
-- HMO: 532
-- PPO: 515
-- EPO: 490
-- HDHP: 463
+- HMO: 563
+- PPO: 548
+- EPO: 512
+- HDHP: 497
 
 ## Plan performance
 
 | Plan | Claims | Denial rate | Paid / billed |
 | --- | ---: | ---: | ---: |
-| HMO | 532 | 8.5% | 61.5% |
-| PPO | 515 | 12.2% | 55.1% |
-| EPO | 490 | 13.1% | 55.4% |
-| HDHP | 463 | 9.7% | 61.7% |
+| HMO | 563 | 8.5% | 62.3% |
+| PPO | 548 | 12.4% | 54.6% |
+| EPO | 512 | 13.7% | 54.8% |
+| HDHP | 497 | 9.5% | 60.9% |
 
 ## Cost sharing by plan (non-denied claims)
 
@@ -52,10 +52,10 @@ Network discount = 1 - allowed/billed. Member cost share = (allowed - paid)/allo
 
 | Plan | Claims | Network discount | Member cost share |
 | --- | ---: | ---: | ---: |
-| HMO | 487 | 21.7% | 15.5% |
-| PPO | 452 | 23.5% | 15.0% |
-| EPO | 426 | 23.3% | 14.8% |
-| HDHP | 418 | 22.8% | 14.7% |
+| HMO | 515 | 21.2% | 15.3% |
+| PPO | 480 | 23.2% | 15.3% |
+| EPO | 442 | 23.6% | 14.8% |
+| HDHP | 450 | 22.9% | 14.6% |
 
 ## Denial-rate outliers (plan x month)
 
@@ -63,38 +63,39 @@ Cells whose denial rate is at least 2 standard errors from the overall rate (cel
 
 | Plan | Month | Claims | Denial rate | Overall | z |
 | --- | --- | ---: | ---: | ---: | ---: |
-| HMO | 2026-11 | 399 | 7.3% | 10.8% | -2.30 |
+| HMO | 2026-11 | 430 | 7.4% | 11.0% | -2.35 |
+| EPO | 2026-11 | 392 | 14.3% | 11.0% | +2.09 |
 
 ## Top procedures by paid amount
 
 | Code | Claims | Avg billed | Paid | Denial rate |
 | --- | ---: | ---: | ---: | ---: |
-| 27447 | 213 | $24,934 | $3,110,501 | 10.8% |
-| 43239 | 212 | $2,036 | $243,373 | 13.2% |
-| 99285 | 208 | $1,070 | $122,774 | 14.4% |
-| 70450 | 197 | $661 | $78,686 | 7.1% |
-| 99214 | 198 | $167 | $19,284 | 11.1% |
+| 27447 | 229 | $24,955 | $3,333,748 | 11.3% |
+| 43239 | 220 | $2,038 | $254,133 | 12.7% |
+| 99285 | 218 | $1,065 | $128,214 | 14.7% |
+| 70450 | 208 | $661 | $83,301 | 7.2% |
+| 99214 | 207 | $166 | $19,903 | 11.6% |
 
 ## Member utilization
 
-179 of 1242 synthetic members have 3+ claims and account for 30.6% of paid dollars.
+198 of 1283 synthetic members have 3+ claims and account for 32.6% of paid dollars.
 
 | Member | Claims | Paid |
 | --- | ---: | ---: |
+| MBR-0136 | 6 | $1,569 |
+| MBR-0693 | 5 | $28,409 |
 | MBR-0471 | 5 | $28,036 |
 | MBR-0939 | 5 | $27,251 |
 | MBR-1424 | 5 | $14,713 |
-| MBR-0746 | 5 | $11,386 |
-| MBR-1062 | 5 | $9,924 |
 
 ## Top denial reason by plan
 
 | Plan | Denials | Top reason | Count |
 | --- | ---: | --- | ---: |
-| EPO | 64 | duplicate claim | 17 |
-| HDHP | 45 | out-of-network provider | 12 |
-| HMO | 45 | not medically necessary | 12 |
-| PPO | 63 | timely filing exceeded | 20 |
+| EPO | 70 | duplicate claim | 20 |
+| HDHP | 47 | out-of-network provider | 13 |
+| HMO | 48 | not medically necessary | 12 |
+| PPO | 68 | timely filing exceeded | 21 |
 
 ## Month-over-month trend (last 6 complete months)
 
@@ -109,7 +110,7 @@ Cells whose denial rate is at least 2 standard errors from the overall rate (cel
 
 ## Potential duplicate services
 
-23 groups share a member, procedure and service date (review queue, not a quality failure).
+24 groups share a member, procedure and service date (review queue, not a quality failure).
 
 | Member | Procedure | Date | Claims | Paid |
 | --- | --- | --- | ---: | ---: |
