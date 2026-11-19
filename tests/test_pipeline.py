@@ -261,3 +261,39 @@ def test_cost_sharing_section_renders_with_illustrative_label():
     md = report.render_markdown([], [], [], 0, cost_sharing=[
         {"plan": "PPO", "claims": 2, "network_discount": 0.2, "member_cost_share": 0.375}])
     assert "| PPO | 2 | 20.0% | 37.5% |" in md and "Illustrative" in md
+
+
+def _cell(plan, month, n, denied, start=0):
+    return [make_valid(f"CLM-{plan}-{month}-{start + i}", plan_type=plan, service_date=f"{month}-10",
+                       status="denied" if i < denied else "paid",
+                       denial_reason="duplicate claim" if i < denied else "",
+                       paid_amount=0 if i < denied else 60) for i in range(n)]
+
+
+def test_denial_rate_outliers_flags_high_cell_and_skips_small(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    claims = (_cell("PPO", "2026-09", 100, 5) + _cell("HMO", "2026-09", 100, 5)
+              + _cell("PPO", "2026-10", 100, 5) + _cell("HMO", "2026-10", 100, 40)
+              + _cell("HDHP", "2026-10", 10, 10))          # tiny cell: skipped
+    pipe.ingest(claims)
+    out = pipe.denial_rate_outliers()
+    assert (out[0]["plan"], out[0]["month"]) == ("HMO", "2026-10")  # largest |z| first
+    assert out[0]["z"] > 2 and out[0]["denial_rate"] == 0.4
+    assert all(o["plan"] != "HDHP" for o in out)                    # 10-claim cell skipped
+    assert any(o["z"] < 0 for o in out)                             # unusually low cells flagged too
+
+
+def test_denial_rate_outliers_edge_cases(tmp_path):
+    assert Pipeline(tmp_path / "e.csv").denial_rate_outliers() == []      # empty store
+    pipe = Pipeline(tmp_path / "u.csv")
+    pipe.ingest(_cell("PPO", "2026-10", 50, 0))                            # no denials at all
+    assert pipe.denial_rate_outliers() == []
+
+
+def test_outlier_section_renders_both_states():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, outliers=[
+        {"plan": "HMO", "month": "2026-10", "claims": 100, "denial_rate": 0.4,
+         "overall_rate": 0.1, "z": 5.2}])
+    assert "| HMO | 2026-10 | 100 | 40.0% | 10.0% | +5.20 |" in md and "not a finding" in md
+    assert "No plan/month cells" in report.render_markdown([], [], [], 0, outliers=[])

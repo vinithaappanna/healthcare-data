@@ -1,8 +1,8 @@
 # Healthcare Data - claims pipeline report
 
-Generated 2026-11-18 19:10 UTC. All data is synthetic - no real member, patient or plan information.
+Generated 2026-11-19 00:11 UTC. All data is synthetic - no real member, patient or plan information.
 
-**1820 claims** in store. Billed $5,577,221, paid $3,240,466, denied 196 overall.
+**1940 claims** in store. Billed $6,034,595, paid $3,524,675, denied 209 overall.
 
 ## Monthly financials
 
@@ -20,31 +20,31 @@ Generated 2026-11-18 19:10 UTC. All data is synthetic - no real member, patient 
 | 2026-08 | 50 | $87,251 | $70,911 | $55,220 | 18.0% |
 | 2026-09 | 28 | $97,162 | $80,729 | $53,482 | 7.1% |
 | 2026-10 | 47 | $71,505 | $55,063 | $42,442 | 8.5% |
-| 2026-11 | 1341 | $4,307,258 | $3,320,528 | $2,449,016 | 10.9% |
+| 2026-11 | 1461 | $4,764,633 | $3,681,037 | $2,733,226 | 10.9% |
 
 ## Denial reasons
 
-- duplicate claim (45)
-- not medically necessary (43)
-- timely filing exceeded (40)
-- out-of-network provider (35)
-- missing prior authorization (33)
+- duplicate claim (49)
+- not medically necessary (47)
+- timely filing exceeded (42)
+- out-of-network provider (38)
+- missing prior authorization (34)
 
 ## Plan mix
 
-- HMO: 497
-- PPO: 463
-- EPO: 447
-- HDHP: 413
+- HMO: 521
+- PPO: 496
+- EPO: 474
+- HDHP: 449
 
 ## Plan performance
 
 | Plan | Claims | Denial rate | Paid / billed |
 | --- | ---: | ---: | ---: |
-| HMO | 497 | 9.0% | 61.1% |
-| PPO | 463 | 12.1% | 55.7% |
-| EPO | 447 | 12.5% | 54.8% |
-| HDHP | 413 | 9.4% | 60.8% |
+| HMO | 521 | 8.6% | 61.3% |
+| PPO | 496 | 12.1% | 55.6% |
+| EPO | 474 | 12.9% | 55.4% |
+| HDHP | 449 | 9.8% | 61.5% |
 
 ## Cost sharing by plan (non-denied claims)
 
@@ -52,41 +52,49 @@ Network discount = 1 - allowed/billed. Member cost share = (allowed - paid)/allo
 
 | Plan | Claims | Network discount | Member cost share |
 | --- | ---: | ---: | ---: |
-| HMO | 452 | 21.7% | 15.6% |
-| HDHP | 374 | 22.8% | 15.3% |
-| PPO | 407 | 24.0% | 14.7% |
-| EPO | 391 | 23.4% | 14.3% |
+| HMO | 476 | 21.9% | 15.5% |
+| PPO | 436 | 23.6% | 14.9% |
+| HDHP | 405 | 22.7% | 14.8% |
+| EPO | 413 | 23.3% | 14.6% |
+
+## Denial-rate outliers (plan x month)
+
+Cells whose denial rate is at least 2 standard errors from the overall rate (cells under 20 claims skipped). A statistical screen on synthetic data, not a finding.
+
+| Plan | Month | Claims | Denial rate | Overall | z |
+| --- | --- | ---: | ---: | ---: | ---: |
+| HMO | 2026-11 | 388 | 7.5% | 10.8% | -2.12 |
 
 ## Top procedures by paid amount
 
 | Code | Claims | Avg billed | Paid | Denial rate |
 | --- | ---: | ---: | ---: | ---: |
-| 27447 | 190 | $25,048 | $2,771,478 | 11.1% |
-| 43239 | 193 | $2,050 | $224,473 | 12.4% |
-| 99285 | 183 | $1,061 | $107,593 | 14.2% |
-| 70450 | 173 | $665 | $69,959 | 6.9% |
-| 99214 | 177 | $167 | $17,210 | 10.7% |
+| 27447 | 206 | $25,013 | $3,020,841 | 10.7% |
+| 43239 | 207 | $2,038 | $237,945 | 13.0% |
+| 99285 | 202 | $1,076 | $120,599 | 13.9% |
+| 70450 | 187 | $660 | $74,876 | 7.0% |
+| 99214 | 189 | $167 | $18,250 | 11.6% |
 
 ## Member utilization
 
-141 of 1178 synthetic members have 3+ claims and account for 23.8% of paid dollars.
+168 of 1220 synthetic members have 3+ claims and account for 28.8% of paid dollars.
 
 | Member | Claims | Paid |
 | --- | ---: | ---: |
+| MBR-0471 | 5 | $28,036 |
+| MBR-0939 | 5 | $27,251 |
 | MBR-1424 | 5 | $14,713 |
 | MBR-0746 | 5 | $11,386 |
 | MBR-1062 | 5 | $9,924 |
-| MBR-1542 | 4 | $27,681 |
-| MBR-0939 | 4 | $27,209 |
 
 ## Top denial reason by plan
 
 | Plan | Denials | Top reason | Count |
 | --- | ---: | --- | ---: |
-| EPO | 56 | duplicate claim | 13 |
-| HDHP | 39 | duplicate claim | 10 |
+| EPO | 61 | duplicate claim | 15 |
+| HDHP | 44 | out-of-network provider | 12 |
 | HMO | 45 | not medically necessary | 12 |
-| PPO | 56 | timely filing exceeded | 18 |
+| PPO | 60 | timely filing exceeded | 19 |
 
 ## Month-over-month trend (last 6 complete months)
 
@@ -101,15 +109,15 @@ Network discount = 1 - allowed/billed. Member cost share = (allowed - paid)/allo
 
 ## Potential duplicate services
 
-18 groups share a member, procedure and service date (review queue, not a quality failure).
+22 groups share a member, procedure and service date (review queue, not a quality failure).
 
 | Member | Procedure | Date | Claims | Paid |
 | --- | --- | --- | ---: | ---: |
+| MBR-1973 | 27447 | 2026-11-18 | 3 | $55,302 |
 | MBR-0076 | 27447 | 2026-11-17 | 2 | $35,616 |
 | MBR-1695 | 27447 | 2026-11-18 | 2 | $25,258 |
 | MBR-1025 | 27447 | 2026-11-17 | 2 | $23,763 |
 | MBR-1697 | 43239 | 2026-11-17 | 2 | $2,808 |
-| MBR-1896 | 43239 | 2026-11-17 | 2 | $2,471 |
 
 ## Cost by age band
 

@@ -53,6 +53,7 @@ def main() -> int:
         report.render_markdown(monthly, reasons, mix, stats["total"],
                                plan_perf=pipe.plan_performance(),
                                cost_sharing=pipe.plan_cost_sharing(),
+                               outliers=pipe.denial_rate_outliers(),
                                procedures=pipe.procedure_summary(),
                                utilization=pipe.high_utilizers(),
                                age_bands=pipe.age_band_costs(),

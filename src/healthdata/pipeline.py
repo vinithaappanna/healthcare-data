@@ -153,6 +153,36 @@ class Pipeline:
                for name, p in plans.items()]
         return sorted(out, key=lambda r: (-r["member_cost_share"], r["plan"]))
 
+    def denial_rate_outliers(self, z: float = 2.0, min_claims: int = 20) -> list[dict]:
+        """Plan/month cells whose denial rate differs from the overall rate by
+        at least `z` binomial standard errors. A statistical screen for where
+        to look first, not proof of anything; synthetic data, illustrative.
+        Cells with fewer than `min_claims` claims are skipped. Sorted by |z|."""
+        import math
+
+        rows = list(self.load_store().values())
+        if not rows:
+            return []
+        overall = sum(r["status"] == "denied" for r in rows) / len(rows)
+        if overall in (0.0, 1.0):
+            return []
+        cells: dict[tuple[str, str], list[int]] = {}
+        for r in rows:
+            c = cells.setdefault((r["plan_type"] or "Unknown", (r["service_date"] or "")[:7]), [0, 0])
+            c[0] += 1
+            c[1] += r["status"] == "denied"
+        out = []
+        for (plan, month), (n, d) in cells.items():
+            if n < min_claims or not month:
+                continue
+            se = math.sqrt(overall * (1 - overall) / n)
+            score = (d / n - overall) / se
+            if abs(score) >= z:
+                out.append({"plan": plan, "month": month, "claims": n,
+                            "denial_rate": round(d / n, 4), "overall_rate": round(overall, 4),
+                            "z": round(score, 2)})
+        return sorted(out, key=lambda r: (-abs(r["z"]), r["plan"], r["month"]))
+
     def procedure_summary(self, top: int = 5) -> list[dict]:
         """Top procedure codes by total paid, with claim count, average billed
         and denial rate. Illustrative synthetic metrics."""

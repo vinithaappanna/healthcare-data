@@ -19,7 +19,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     reasons_by_plan: dict | None = None,
                     duplicates: list[dict] | None = None,
                     trend: list[dict] | None = None,
-                    cost_sharing: list[dict] | None = None) -> str:
+                    cost_sharing: list[dict] | None = None,
+                    outliers: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -66,6 +67,18 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for r in cost_sharing:
             lines.append(f"| {r['plan']} | {r['claims']} | {r['network_discount']:.1%} | "
                          f"{r['member_cost_share']:.1%} |")
+    if outliers is not None:
+        lines += ["", "## Denial-rate outliers (plan x month)", "",
+                  "Cells whose denial rate is at least 2 standard errors from the overall rate "
+                  "(cells under 20 claims skipped). A statistical screen on synthetic data, not a finding."]
+        if outliers:
+            lines += ["", "| Plan | Month | Claims | Denial rate | Overall | z |",
+                      "| --- | --- | ---: | ---: | ---: | ---: |"]
+            for o in outliers:
+                lines.append(f"| {o['plan']} | {o['month']} | {o['claims']} | {o['denial_rate']:.1%} | "
+                             f"{o['overall_rate']:.1%} | {o['z']:+.2f} |")
+        else:
+            lines += ["", "No plan/month cells outside the screen."]
     if procedures:
         lines += ["", "## Top procedures by paid amount", "",
                   "| Code | Claims | Avg billed | Paid | Denial rate |",
