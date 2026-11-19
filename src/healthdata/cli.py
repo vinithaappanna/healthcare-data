@@ -3,6 +3,8 @@
   python scripts/query.py claim CLM-61117-B01-000003
   python scripts/query.py member MBR-0076
   python scripts/query.py plan PPO
+  python scripts/query.py procedure 99213
+  python scripts/query.py diagnosis I10
 
 Read-only. All data is synthetic.
 """
@@ -40,14 +42,45 @@ def plan_summary(pipe: Pipeline, plan: str) -> dict | None:
     return None
 
 
+def _code_summary(pipe: Pipeline, field: str, code: str) -> dict | None:
+    rows = [r for r in pipe.load_store().values() if (r[field] or "").lower() == code.lower()]
+    if not rows:
+        return None
+    paid_rows = [r for r in rows if r["status"] != "denied"]
+    reasons: dict[str, int] = {}
+    for r in rows:
+        if r["status"] == "denied":
+            reasons[r["denial_reason"] or "unspecified"] = reasons.get(r["denial_reason"] or "unspecified", 0) + 1
+    return {
+        field: rows[0][field],
+        "claims": len(rows),
+        "denial_rate": round(sum(r["status"] == "denied" for r in rows) / len(rows), 4),
+        "avg_billed": round(sum(float(r["billed_amount"] or 0) for r in rows) / len(rows), 2),
+        "avg_paid_non_denied": round(sum(float(r["paid_amount"] or 0) for r in paid_rows) / len(paid_rows), 2)
+        if paid_rows else 0.0,
+        "denial_reasons": dict(sorted(reasons.items(), key=lambda kv: (-kv[1], kv[0]))),
+    }
+
+
+def procedure_summary(pipe: Pipeline, code: str) -> dict | None:
+    """Per procedure code: volume, denial rate, average billed/paid and denial reasons."""
+    return _code_summary(pipe, "procedure_code", code)
+
+
+def diagnosis_summary(pipe: Pipeline, code: str) -> dict | None:
+    """Same view keyed by diagnosis code. Illustrative codes, not authoritative."""
+    return _code_summary(pipe, "diagnosis_code", code)
+
+
 def main(argv: list[str] | None = None, store: Path | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for name in ("claim", "member", "plan"):
+    for name in ("claim", "member", "plan", "procedure", "diagnosis"):
         sub.add_parser(name).add_argument("key")
     args = parser.parse_args(argv)
     pipe = Pipeline(store or Path(__file__).resolve().parents[2] / "data" / "claims.csv")
-    handler = {"claim": lookup_claim, "member": member_summary, "plan": plan_summary}[args.cmd]
+    handler = {"claim": lookup_claim, "member": member_summary, "plan": plan_summary,
+               "procedure": procedure_summary, "diagnosis": diagnosis_summary}[args.cmd]
     result = handler(pipe, args.key)
     if result is None:
         print(f"no {args.cmd} found for {args.key!r}")

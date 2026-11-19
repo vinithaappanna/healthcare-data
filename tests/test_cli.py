@@ -50,3 +50,28 @@ def test_main_prints_json_and_exit_codes(tmp_path, capsys):
     assert json.loads(capsys.readouterr().out)["claims"] == 2
     assert cli.main(["claim", "nope"], store=path) == 1
     assert "no claim found" in capsys.readouterr().out
+
+
+def test_procedure_summary_math_and_reasons(tmp_path):
+    out = cli.procedure_summary(Pipeline(store(tmp_path)), "99213")
+    assert out["claims"] == 3 and out["denial_rate"] == 0.3333
+    assert out["avg_billed"] == 133.33 and out["avg_paid_non_denied"] == 60.0
+    assert out["denial_reasons"] == {"duplicate claim": 1}
+    assert cli.procedure_summary(Pipeline(store(tmp_path)), "00000") is None
+
+
+def test_diagnosis_summary_case_insensitive_and_all_denied(tmp_path):
+    path = tmp_path / "d.csv"
+    Pipeline(path).ingest([make_valid("CLM-X", diagnosis_code="E11.9", status="denied",
+                                      paid_amount=0, allowed_amount=0, denial_reason="timely filing exceeded")])
+    out = cli.diagnosis_summary(Pipeline(path), "e11.9")
+    assert out["denial_rate"] == 1.0 and out["avg_paid_non_denied"] == 0.0  # no divide-by-zero
+    assert out["denial_reasons"] == {"timely filing exceeded": 1}
+
+
+def test_main_procedure_and_diagnosis_commands(tmp_path, capsys):
+    path = store(tmp_path)
+    assert cli.main(["procedure", "99213"], store=path) == 0
+    assert json.loads(capsys.readouterr().out)["claims"] == 3
+    assert cli.main(["diagnosis", "ZZZ"], store=path) == 1
+    assert "no diagnosis found" in capsys.readouterr().out

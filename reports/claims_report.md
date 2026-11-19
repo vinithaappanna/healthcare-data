@@ -1,8 +1,8 @@
 # Healthcare Data - claims pipeline report
 
-Generated 2026-11-19 00:11 UTC. All data is synthetic - no real member, patient or plan information.
+Generated 2026-11-19 05:11 UTC. All data is synthetic - no real member, patient or plan information.
 
-**1940 claims** in store. Billed $6,034,595, paid $3,524,675, denied 209 overall.
+**2000 claims** in store. Billed $6,218,610, paid $3,628,084, denied 217 overall.
 
 ## Monthly financials
 
@@ -20,31 +20,31 @@ Generated 2026-11-19 00:11 UTC. All data is synthetic - no real member, patient 
 | 2026-08 | 50 | $87,251 | $70,911 | $55,220 | 18.0% |
 | 2026-09 | 28 | $97,162 | $80,729 | $53,482 | 7.1% |
 | 2026-10 | 47 | $71,505 | $55,063 | $42,442 | 8.5% |
-| 2026-11 | 1461 | $4,764,633 | $3,681,037 | $2,733,226 | 10.9% |
+| 2026-11 | 1521 | $4,948,647 | $3,826,397 | $2,836,635 | 11.0% |
 
 ## Denial reasons
 
-- duplicate claim (49)
+- duplicate claim (51)
 - not medically necessary (47)
-- timely filing exceeded (42)
-- out-of-network provider (38)
-- missing prior authorization (34)
+- timely filing exceeded (43)
+- out-of-network provider (40)
+- missing prior authorization (36)
 
 ## Plan mix
 
-- HMO: 521
-- PPO: 496
-- EPO: 474
-- HDHP: 449
+- HMO: 532
+- PPO: 515
+- EPO: 490
+- HDHP: 463
 
 ## Plan performance
 
 | Plan | Claims | Denial rate | Paid / billed |
 | --- | ---: | ---: | ---: |
-| HMO | 521 | 8.6% | 61.3% |
-| PPO | 496 | 12.1% | 55.6% |
-| EPO | 474 | 12.9% | 55.4% |
-| HDHP | 449 | 9.8% | 61.5% |
+| HMO | 532 | 8.5% | 61.5% |
+| PPO | 515 | 12.2% | 55.1% |
+| EPO | 490 | 13.1% | 55.4% |
+| HDHP | 463 | 9.7% | 61.7% |
 
 ## Cost sharing by plan (non-denied claims)
 
@@ -52,10 +52,10 @@ Network discount = 1 - allowed/billed. Member cost share = (allowed - paid)/allo
 
 | Plan | Claims | Network discount | Member cost share |
 | --- | ---: | ---: | ---: |
-| HMO | 476 | 21.9% | 15.5% |
-| PPO | 436 | 23.6% | 14.9% |
-| HDHP | 405 | 22.7% | 14.8% |
-| EPO | 413 | 23.3% | 14.6% |
+| HMO | 487 | 21.7% | 15.5% |
+| PPO | 452 | 23.5% | 15.0% |
+| EPO | 426 | 23.3% | 14.8% |
+| HDHP | 418 | 22.8% | 14.7% |
 
 ## Denial-rate outliers (plan x month)
 
@@ -63,21 +63,21 @@ Cells whose denial rate is at least 2 standard errors from the overall rate (cel
 
 | Plan | Month | Claims | Denial rate | Overall | z |
 | --- | --- | ---: | ---: | ---: | ---: |
-| HMO | 2026-11 | 388 | 7.5% | 10.8% | -2.12 |
+| HMO | 2026-11 | 399 | 7.3% | 10.8% | -2.30 |
 
 ## Top procedures by paid amount
 
 | Code | Claims | Avg billed | Paid | Denial rate |
 | --- | ---: | ---: | ---: | ---: |
-| 27447 | 206 | $25,013 | $3,020,841 | 10.7% |
-| 43239 | 207 | $2,038 | $237,945 | 13.0% |
-| 99285 | 202 | $1,076 | $120,599 | 13.9% |
-| 70450 | 187 | $660 | $74,876 | 7.0% |
-| 99214 | 189 | $167 | $18,250 | 11.6% |
+| 27447 | 213 | $24,934 | $3,110,501 | 10.8% |
+| 43239 | 212 | $2,036 | $243,373 | 13.2% |
+| 99285 | 208 | $1,070 | $122,774 | 14.4% |
+| 70450 | 197 | $661 | $78,686 | 7.1% |
+| 99214 | 198 | $167 | $19,284 | 11.1% |
 
 ## Member utilization
 
-168 of 1220 synthetic members have 3+ claims and account for 28.8% of paid dollars.
+179 of 1242 synthetic members have 3+ claims and account for 30.6% of paid dollars.
 
 | Member | Claims | Paid |
 | --- | ---: | ---: |
@@ -91,10 +91,10 @@ Cells whose denial rate is at least 2 standard errors from the overall rate (cel
 
 | Plan | Denials | Top reason | Count |
 | --- | ---: | --- | ---: |
-| EPO | 61 | duplicate claim | 15 |
-| HDHP | 44 | out-of-network provider | 12 |
+| EPO | 64 | duplicate claim | 17 |
+| HDHP | 45 | out-of-network provider | 12 |
 | HMO | 45 | not medically necessary | 12 |
-| PPO | 60 | timely filing exceeded | 19 |
+| PPO | 63 | timely filing exceeded | 20 |
 
 ## Month-over-month trend (last 6 complete months)
 
@@ -109,7 +109,7 @@ Cells whose denial rate is at least 2 standard errors from the overall rate (cel
 
 ## Potential duplicate services
 
-22 groups share a member, procedure and service date (review queue, not a quality failure).
+23 groups share a member, procedure and service date (review queue, not a quality failure).
 
 | Member | Procedure | Date | Claims | Paid |
 | --- | --- | --- | ---: | ---: |
