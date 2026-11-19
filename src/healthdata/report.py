@@ -84,6 +84,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         lines += ["", "## Paid-amount concentration", "",
                   f"Share of total paid ({concentration['claims']} claims) held by the largest claims. "
                   "Synthetic data, illustrative.", "",
+                  "![Paid concentration curve](paid_concentration.png)", "",
                   "| Top claims | Count | Share of paid |", "| --- | ---: | ---: |"]
         for t in concentration["tiers"]:
             lines.append(f"| top {t['top_pct']:.0%} | {t['claims']} | {t['share_of_paid']:.1%} |")
@@ -188,6 +189,27 @@ def plot_age_band_costs(age_bands: list[dict], out_path) -> bool:
                     bar.get_height()), ha="center", va="bottom", fontsize=8)
     ax.set_title("Average paid per claim by age band (synthetic claims)")
     ax.set_ylabel("USD per claim")
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return True
+
+
+def plot_paid_concentration(curve: list[tuple[float, float]], out_path) -> bool:
+    """Cumulative paid share vs claim share (largest first) against the
+    equal-spend diagonal. Synthetic data."""
+    if not curve:
+        return False
+    fig, ax = plt.subplots(figsize=(5.5, 4.5))
+    ax.plot([p[0] * 100 for p in curve], [p[1] * 100 for p in curve], color="#1c7ed6", linewidth=2,
+            label="largest claims first")
+    ax.plot([0, 100], [0, 100], color="grey", linestyle="--", label="equal spend")
+    ax.set_xlabel("% of claims (largest paid first)")
+    ax.set_ylabel("% of total paid")
+    ax.set_title("Paid-amount concentration (synthetic)", fontsize=11)
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.legend(loc="lower right", fontsize=8)
     fig.tight_layout()
     fig.savefig(out_path, dpi=120)
     plt.close(fig)

@@ -202,6 +202,22 @@ class Pipeline:
                                  "share_of_paid": round(sum(paid[:k]) / total, 4)})
         return out
 
+    def paid_curve(self, points: int = 20) -> list[tuple[float, float]]:
+        """Cumulative share of paid dollars vs share of claims, largest claims
+        first, as (claims_fraction, paid_fraction) from (0, 0) to (1, 1).
+        Empty when there is nothing paid. Synthetic data, illustrative."""
+        import math
+
+        paid = sorted((float(r["paid_amount"] or 0) for r in self.load_store().values()), reverse=True)
+        total = sum(paid)
+        if not paid or total <= 0 or points < 1:
+            return []
+        out = [(0.0, 0.0)]
+        for i in range(1, points + 1):
+            k = math.ceil(len(paid) * i / points)
+            out.append((round(k / len(paid), 4), round(sum(paid[:k]) / total, 4)))
+        return out
+
     def procedure_summary(self, top: int = 5) -> list[dict]:
         """Top procedure codes by total paid, with claim count, average billed
         and denial rate. Illustrative synthetic metrics."""

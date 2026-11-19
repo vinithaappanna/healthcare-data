@@ -331,3 +331,22 @@ def test_concentration_section_renders():
         "claims": 100, "total_paid": 1990.0,
         "tiers": [{"top_pct": 0.01, "claims": 1, "share_of_paid": 0.5025}]})
     assert "| top 1% | 1 | 50.2% |" in md or "| top 1% | 1 | 50.3% |" in md
+
+
+def test_paid_curve_shape_and_values(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([make_valid(f"CLM-{i}", billed_amount=2000, allowed_amount=1500, paid_amount=p)
+                 for i, p in enumerate([60, 20, 10, 10])])      # total 100
+    curve = pipe.paid_curve(points=4)
+    assert curve == [(0.0, 0.0), (0.25, 0.6), (0.5, 0.8), (0.75, 0.9), (1.0, 1.0)]
+    shares = [c[1] for c in pipe.paid_curve(points=20)]
+    assert shares == sorted(shares) and shares[-1] == 1.0       # monotonic, ends at 100%
+    assert Pipeline(tmp_path / "e.csv").paid_curve() == []
+    assert pipe.paid_curve(points=0) == []
+
+
+def test_concentration_chart_renders(tmp_path):
+    from healthdata import report
+    assert report.plot_paid_concentration([(0.0, 0.0), (0.5, 0.8), (1.0, 1.0)], tmp_path / "c.png") is True
+    assert (tmp_path / "c.png").stat().st_size > 1000
+    assert report.plot_paid_concentration([], tmp_path / "x.png") is False
