@@ -379,3 +379,28 @@ def test_denial_procs_section_renders():
         {"reason": "duplicate claim", "denials": 4,
          "procedures": [{"code": "99213", "denials": 3, "share": 0.75}]}])
     assert "| duplicate claim | 4 | 99213 (75%) |" in md
+
+
+def test_procedure_discounts_ratio_filter_and_order(tmp_path):
+    pipe = Pipeline(tmp_path / "d.csv")
+    rows = [make_valid(f"CLM-A{i}", procedure_code="99213", billed_amount=100, allowed_amount=60, paid_amount=50)
+            for i in range(20)]
+    rows += [make_valid(f"CLM-B{i}", procedure_code="93000", billed_amount=100, allowed_amount=40, paid_amount=30)
+             for i in range(20)]
+    rows += [make_valid(f"CLM-C{i}", procedure_code="99214", billed_amount=100, allowed_amount=10, paid_amount=5)
+             for i in range(3)]                                   # too few claims
+    rows += [make_valid(f"CLM-D{i}", procedure_code="93000", billed_amount=500, allowed_amount=0, paid_amount=0,
+                        status="denied", denial_reason="duplicate claim") for i in range(5)]
+    pipe.ingest(rows)
+    out = pipe.procedure_discounts()
+    assert [d["procedure"] for d in out] == ["93000", "99213"]    # lowest ratio first, 99214 skipped
+    assert out[0]["allowed_to_billed"] == 0.4 and out[0]["claims"] == 20   # denied excluded
+    assert Pipeline(tmp_path / "e.csv").procedure_discounts() == []
+
+
+def test_discount_section_renders():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, discounts=[
+        {"procedure": "93000", "claims": 20, "billed": 2000.0, "allowed": 800.0, "allowed_to_billed": 0.4}])
+    assert "| 93000 | 20 | $2,000 | $800 | 40.0% |" in md
+    assert "Allowed-to-billed" not in report.render_markdown([], [], [], 0, discounts=[])

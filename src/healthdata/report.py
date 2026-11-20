@@ -23,7 +23,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     outliers: list[dict] | None = None,
                     concentration: dict | None = None,
                     gates: list[tuple[str, int]] | None = None,
-                    denial_procs: list[dict] | None = None) -> str:
+                    denial_procs: list[dict] | None = None,
+                    discounts: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -83,6 +84,16 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                              f"{o['overall_rate']:.1%} | {o['z']:+.2f} |")
         else:
             lines += ["", "No plan/month cells outside the screen."]
+    if discounts:
+        lines += ["", "## Allowed-to-billed ratio by procedure", "",
+                  "Lowest ratios first (non-denied claims, procedures with enough volume). "
+                  "A lower ratio means a bigger gap between billed charges and the allowed amount. "
+                  "Synthetic and illustrative, not real contract rates.", "",
+                  "| Procedure | Claims | Billed | Allowed | Allowed / billed |",
+                  "| --- | ---: | ---: | ---: | ---: |"]
+        for d in discounts:
+            lines.append(f"| {d['procedure']} | {d['claims']} | ${d['billed']:,.0f} | "
+                         f"${d['allowed']:,.0f} | {d['allowed_to_billed']:.1%} |")
     if concentration and concentration.get("tiers"):
         lines += ["", "## Paid-amount concentration", "",
                   f"Share of total paid ({concentration['claims']} claims) held by the largest claims. "

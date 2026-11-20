@@ -202,6 +202,26 @@ class Pipeline:
                                  "share_of_paid": round(sum(paid[:k]) / total, 4)})
         return out
 
+    def procedure_discounts(self, min_claims: int = 20, top: int = 6) -> list[dict]:
+        """Allowed-to-billed ratio per procedure code (a stand-in for the
+        negotiated discount), lowest ratio first. Procedures with fewer than
+        min_claims claims are skipped as too noisy. Denied claims are excluded
+        because their allowed amount is zero by construction. Synthetic,
+        illustrative: not real contract rates."""
+        agg: dict[str, list[float]] = {}
+        for r in self.load_store().values():
+            if r.get("status") == "denied":
+                continue
+            a = agg.setdefault(r["procedure_code"], [0, 0.0, 0.0])
+            a[0] += 1
+            a[1] += float(r["billed_amount"] or 0)
+            a[2] += float(r["allowed_amount"] or 0)
+        rows = [{"procedure": c, "claims": n, "billed": round(b, 2), "allowed": round(al, 2),
+                 "allowed_to_billed": round(al / b, 4)}
+                for c, (n, b, al) in agg.items() if n >= min_claims and b > 0]
+        rows.sort(key=lambda x: (x["allowed_to_billed"], x["procedure"]))
+        return rows[:top]
+
     def paid_curve(self, points: int = 20) -> list[tuple[float, float]]:
         """Cumulative share of paid dollars vs share of claims, largest claims
         first, as (claims_fraction, paid_fraction) from (0, 0) to (1, 1).

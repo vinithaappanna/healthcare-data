@@ -59,6 +59,7 @@ def main(root: Path | None = None) -> int:
                                cost_sharing=pipe.plan_cost_sharing(),
                                outliers=pipe.denial_rate_outliers(),
                                concentration=pipe.paid_concentration(),
+                               discounts=pipe.procedure_discounts(),
                                denial_procs=pipe.procedures_by_denial_reason(),
                                gates=[(n, len(i)) for n, i in run_checks(load_rows(STORE) or [])],
                                procedures=pipe.procedure_summary(),
