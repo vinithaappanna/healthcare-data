@@ -350,3 +350,32 @@ def test_concentration_chart_renders(tmp_path):
     assert report.plot_paid_concentration([(0.0, 0.0), (0.5, 0.8), (1.0, 1.0)], tmp_path / "c.png") is True
     assert (tmp_path / "c.png").stat().st_size > 1000
     assert report.plot_paid_concentration([], tmp_path / "x.png") is False
+
+
+def test_procedures_by_denial_reason_ranking_and_ties(tmp_path):
+    pipe = Pipeline(tmp_path / "c.csv")
+    def den(i, proc, reason):
+        return make_valid(f"CLM-D{i}", procedure_code=proc, status="denied", paid_amount=0,
+                          allowed_amount=0, denial_reason=reason)
+    claims = ([den(i, "27447", "missing prior authorization") for i in range(3)]
+              + [den(10 + i, "99213", "missing prior authorization") for i in range(2)]
+              + [den(20, "70553", "missing prior authorization")]
+              + [den(30, "99213", "duplicate claim"), den(31, "93000", "duplicate claim")]
+              + [make_valid("CLM-OK1"), make_valid("CLM-OK2")])        # paid claims are ignored
+    pipe.ingest(claims)
+    out = pipe.procedures_by_denial_reason(top_reasons=2, top_procs=2)
+    assert [d["reason"] for d in out] == ["missing prior authorization", "duplicate claim"]
+    top = out[0]
+    assert top["denials"] == 6
+    assert top["procedures"] == [{"code": "27447", "denials": 3, "share": 0.5},
+                                 {"code": "99213", "denials": 2, "share": 0.3333}]
+    assert [p["code"] for p in out[1]["procedures"]] == ["93000", "99213"]   # tie: code order
+    assert Pipeline(tmp_path / "e.csv").procedures_by_denial_reason() == []
+
+
+def test_denial_procs_section_renders():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, denial_procs=[
+        {"reason": "duplicate claim", "denials": 4,
+         "procedures": [{"code": "99213", "denials": 3, "share": 0.75}]}])
+    assert "| duplicate claim | 4 | 99213 (75%) |" in md

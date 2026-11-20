@@ -218,6 +218,27 @@ class Pipeline:
             out.append((round(k / len(paid), 4), round(sum(paid[:k]) / total, 4)))
         return out
 
+    def procedures_by_denial_reason(self, top_reasons: int = 3, top_procs: int = 3) -> list[dict]:
+        """For the most common denial reasons, the procedure codes denied for
+        that reason most often. Each entry also gives the code's share of that
+        reason's denials. Ties break on code. Synthetic, illustrative."""
+        reasons: dict[str, dict[str, int]] = {}
+        for r in self.load_store().values():
+            if r["status"] != "denied":
+                continue
+            by_proc = reasons.setdefault(r["denial_reason"] or "unspecified", {})
+            code = r["procedure_code"] or "Unknown"
+            by_proc[code] = by_proc.get(code, 0) + 1
+        ranked = sorted(reasons.items(), key=lambda kv: (-sum(kv[1].values()), kv[0]))[:top_reasons]
+        out = []
+        for reason, by_proc in ranked:
+            total = sum(by_proc.values())
+            procs = sorted(by_proc.items(), key=lambda kv: (-kv[1], kv[0]))[:top_procs]
+            out.append({"reason": reason, "denials": total,
+                        "procedures": [{"code": c, "denials": n, "share": round(n / total, 4)}
+                                       for c, n in procs]})
+        return out
+
     def procedure_summary(self, top: int = 5) -> list[dict]:
         """Top procedure codes by total paid, with claim count, average billed
         and denial rate. Illustrative synthetic metrics."""
