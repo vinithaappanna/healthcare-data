@@ -21,7 +21,11 @@ REPORTS = ROOT / "reports"
 BATCH_SIZE = 60
 
 
-def main() -> int:
+def main(root: Path | None = None) -> int:
+    """Run one round. `root` redirects data/ and reports/ (used by tests)."""
+    STORE = (root / "data" / "claims.csv") if root else globals()["STORE"]
+    REPORTS = (root / "reports") if root else globals()["REPORTS"]
+    STORE.parent.mkdir(parents=True, exist_ok=True)
     # Multiple rounds a day must each add a fresh batch, so the seed mixes
     # the day with a batch sequence number taken from the store. Same day +
     # same store state reproduces the same batch; a new round never

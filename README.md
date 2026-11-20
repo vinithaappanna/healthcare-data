@@ -16,9 +16,14 @@ seeded RNG - no real member, patient, provider or plan data anywhere.
   diagnoses, billed/allowed/paid amounts, denials with reasons)
 - `healthdata.pipeline` - validate, dedupe on `claim_id`, append to a CSV
   store, and build monthly financial marts, denial-reason and plan-mix views
-- `healthdata.quality` - amount-consistency, denial-reason and duplicate-grain
-  checks that fail loudly
-- `healthdata.report` - markdown report plus charts
+- `healthdata.quality` - amount-consistency, denial-reason, duplicate-grain,
+  procedure-range, diagnosis and service-date checks that fail loudly
+- `healthdata.report` - markdown report plus charts. Sections include plan
+  performance and cost sharing, denial reasons (and the procedures behind them),
+  plan x month denial-rate outliers, paid-amount concentration, cost by age
+  band, month-over-month trend, potential duplicate services and a per-check
+  data quality gate table
+- `healthdata.cli` - read-only lookups: claim, member, plan, procedure, diagnosis
 - `scripts/daily_update.py` - one update round: fresh synthetic batch, quality
   gates, regenerated report. Each run adds a new sequenced batch (claim ids
   carry a -Bnn- segment), so multiple rounds a day all bring new data;
