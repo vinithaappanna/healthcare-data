@@ -61,6 +61,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for r in plan_perf:
             lines.append(f"| {r['plan']} | {r['claims']} | {r['denial_rate']:.1%} | "
                          f"{r['paid_to_billed']:.1%} |")
+        lines += ["", "![Denial rate by plan type](plan_denial_rates.png)"]
     if cost_sharing:
         lines += ["", "## Cost sharing by plan (non-denied claims)", "",
                   "Network discount = 1 - allowed/billed. Member cost share = (allowed - paid)/allowed. "
@@ -226,6 +227,32 @@ def plot_paid_concentration(curve: list[tuple[float, float]], out_path) -> bool:
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.legend(loc="lower right", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return True
+
+
+def plot_plan_denial_rates(plan_perf: list[dict], out_path, min_claims: int = 1) -> bool:
+    """Bar chart of denial rate per plan type with claim counts, plus the
+    overall rate as a reference line. Synthetic data, illustrative."""
+    rows = [r for r in plan_perf if r["claims"] >= min_claims]
+    if not rows:
+        return False
+    total = sum(r["claims"] for r in rows)
+    overall = sum(r["denial_rate"] * r["claims"] for r in rows) / total
+    fig, ax = plt.subplots(figsize=(6.5, 4))
+    bars = ax.bar([r["plan"] for r in rows], [r["denial_rate"] * 100 for r in rows], color="#e8590c")
+    for bar, r in zip(bars, rows):
+        ax.annotate(f"{r['denial_rate']:.1%}\n(n={r['claims']})",
+                    xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                    xytext=(0, 3), textcoords="offset points", ha="center", fontsize=8,
+                    bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85), zorder=5)
+    ax.axhline(overall * 100, color="grey", linestyle="--", label=f"overall {overall:.1%}")
+    ax.set_ylabel("% of claims denied")
+    ax.set_ylim(0, max(r["denial_rate"] for r in rows) * 100 * 1.3 + 1)
+    ax.set_title("Denial rate by plan type (synthetic)", fontsize=11)
+    ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(out_path, dpi=120)
     plt.close(fig)

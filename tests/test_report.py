@@ -32,3 +32,21 @@ def test_charts_render(tmp_path):
 def test_charts_empty_input(tmp_path):
     assert report.plot_monthly_financials([], tmp_path / "x.png") is False
     assert report.plot_denial_reasons([], tmp_path / "y.png") is False
+
+
+def test_plan_denial_chart_renders_and_handles_empty(tmp_path):
+    perf = [{"plan": "PPO", "claims": 100, "denial_rate": 0.1, "paid_to_billed": 0.5},
+            {"plan": "HMO", "claims": 50, "denial_rate": 0.2, "paid_to_billed": 0.4}]
+    assert report.plot_plan_denial_rates(perf, tmp_path / "p.png") is True
+    assert (tmp_path / "p.png").stat().st_size > 1000
+    assert report.plot_plan_denial_rates([], tmp_path / "e.png") is False
+    assert report.plot_plan_denial_rates(perf, tmp_path / "m.png", min_claims=500) is False   # all filtered out
+    # zero-denial plans must not break the axis limits
+    zero = [{"plan": "PPO", "claims": 10, "denial_rate": 0.0, "paid_to_billed": 0.6}]
+    assert report.plot_plan_denial_rates(zero, tmp_path / "z.png") is True
+
+
+def test_plan_performance_section_embeds_chart():
+    md = report.render_markdown([], [], [], 0, plan_perf=[
+        {"plan": "PPO", "claims": 2, "denial_rate": 0.5, "paid_to_billed": 0.3}])
+    assert "plan_denial_rates.png" in md

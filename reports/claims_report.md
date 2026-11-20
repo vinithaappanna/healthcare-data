@@ -1,8 +1,8 @@
 # Healthcare Data - claims pipeline report
 
-Generated 2026-11-20 11:15 UTC. All data is synthetic - no real member, patient or plan information.
+Generated 2026-11-20 16:15 UTC. All data is synthetic - no real member, patient or plan information.
 
-**2720 claims** in store. Billed $8,454,380, paid $4,920,419, denied 313 overall.
+**2900 claims** in store. Billed $9,069,879, paid $5,300,977, denied 338 overall.
 
 ## Monthly financials
 
@@ -20,31 +20,33 @@ Generated 2026-11-20 11:15 UTC. All data is synthetic - no real member, patient 
 | 2026-08 | 50 | $87,251 | $70,911 | $55,220 | 18.0% |
 | 2026-09 | 28 | $97,162 | $80,729 | $53,482 | 7.1% |
 | 2026-10 | 47 | $71,505 | $55,063 | $42,442 | 8.5% |
-| 2026-11 | 2241 | $7,184,417 | $5,557,147 | $4,128,969 | 11.8% |
+| 2026-11 | 2421 | $7,799,916 | $6,030,120 | $4,509,527 | 11.9% |
 
 ## Denial reasons
 
-- duplicate claim (69)
-- missing prior authorization (64)
-- out-of-network provider (62)
-- timely filing exceeded (60)
-- not medically necessary (59)
+- duplicate claim (76)
+- out-of-network provider (68)
+- missing prior authorization (67)
+- timely filing exceeded (67)
+- not medically necessary (60)
 
 ## Plan mix
 
-- HMO: 723
-- PPO: 694
-- HDHP: 663
-- EPO: 640
+- HMO: 779
+- PPO: 734
+- HDHP: 701
+- EPO: 686
 
 ## Plan performance
 
 | Plan | Claims | Denial rate | Paid / billed |
 | --- | ---: | ---: | ---: |
-| HMO | 723 | 9.7% | 60.9% |
-| PPO | 694 | 11.8% | 57.0% |
-| HDHP | 663 | 10.3% | 59.9% |
-| EPO | 640 | 14.7% | 55.1% |
+| HMO | 779 | 10.4% | 61.3% |
+| PPO | 734 | 11.3% | 57.6% |
+| HDHP | 701 | 10.7% | 59.3% |
+| EPO | 686 | 14.4% | 55.3% |
+
+![Denial rate by plan type](plan_denial_rates.png)
 
 ## Cost sharing by plan (non-denied claims)
 
@@ -52,10 +54,10 @@ Network discount = 1 - allowed/billed. Member cost share = (allowed - paid)/allo
 
 | Plan | Claims | Network discount | Member cost share |
 | --- | ---: | ---: | ---: |
-| PPO | 612 | 22.6% | 15.8% |
-| EPO | 546 | 23.7% | 15.3% |
-| HMO | 653 | 21.7% | 15.2% |
-| HDHP | 595 | 22.7% | 15.0% |
+| PPO | 651 | 22.7% | 15.7% |
+| EPO | 587 | 23.8% | 15.5% |
+| HDHP | 626 | 22.5% | 14.9% |
+| HMO | 698 | 21.8% | 14.8% |
 
 ## Denial-rate outliers (plan x month)
 
@@ -63,27 +65,27 @@ Cells whose denial rate is at least 2 standard errors from the overall rate (cel
 
 | Plan | Month | Claims | Denial rate | Overall | z |
 | --- | --- | ---: | ---: | ---: | ---: |
-| EPO | 2026-11 | 520 | 15.4% | 11.5% | +2.74 |
+| EPO | 2026-11 | 566 | 15.0% | 11.7% | +2.49 |
 
 ## Paid-amount concentration
 
-Share of total paid (2720 claims) held by the largest claims. Synthetic data, illustrative.
+Share of total paid (2900 claims) held by the largest claims. Synthetic data, illustrative.
 
 ![Paid concentration curve](paid_concentration.png)
 
 | Top claims | Count | Share of paid |
 | --- | ---: | ---: |
-| top 1% | 28 | 13.8% |
-| top 5% | 136 | 54.9% |
-| top 10% | 272 | 86.6% |
+| top 1% | 29 | 13.4% |
+| top 5% | 145 | 54.6% |
+| top 10% | 290 | 86.6% |
 
 ## Procedures behind the top denial reasons
 
 | Denial reason | Denials | Top procedures (share of that reason) |
 | --- | ---: | --- |
-| duplicate claim | 69 | 99285 (20%), 93000 (13%), 85025 (12%) |
-| missing prior authorization | 64 | 99214 (20%), 85025 (12%), 43239 (11%) |
-| out-of-network provider | 62 | 70450 (15%), 99285 (15%), 43239 (13%) |
+| duplicate claim | 76 | 99285 (22%), 93000 (13%), 85025 (11%) |
+| out-of-network provider | 68 | 70450 (16%), 99285 (15%), 43239 (12%) |
+| missing prior authorization | 67 | 99214 (19%), 85025 (13%), 99285 (13%) |
 
 ## Data quality gates
 
@@ -102,15 +104,15 @@ Share of total paid (2720 claims) held by the largest claims. Synthetic data, il
 
 | Code | Claims | Avg billed | Paid | Denial rate |
 | --- | ---: | ---: | ---: | ---: |
-| 27447 | 291 | $24,899 | $4,233,412 | 10.7% |
-| 43239 | 278 | $2,048 | $321,620 | 13.3% |
-| 99285 | 268 | $1,070 | $158,381 | 15.3% |
-| 70450 | 281 | $653 | $107,783 | 10.7% |
-| 99214 | 272 | $167 | $25,672 | 13.6% |
+| 27447 | 311 | $25,001 | $4,566,360 | 10.3% |
+| 43239 | 296 | $2,037 | $340,816 | 12.8% |
+| 99285 | 297 | $1,072 | $175,884 | 15.8% |
+| 70450 | 295 | $654 | $112,804 | 11.2% |
+| 99214 | 285 | $167 | $26,703 | 14.0% |
 
 ## Member utilization
 
-327 of 1473 synthetic members have 3+ claims and account for 41.5% of paid dollars.
+368 of 1525 synthetic members have 3+ claims and account for 43.5% of paid dollars.
 
 | Member | Claims | Paid |
 | --- | ---: | ---: |
@@ -118,16 +120,16 @@ Share of total paid (2720 claims) held by the largest claims. Synthetic data, il
 | MBR-0471 | 6 | $28,114 |
 | MBR-0746 | 6 | $11,961 |
 | MBR-1062 | 6 | $9,989 |
-| MBR-0136 | 6 | $1,569 |
+| MBR-0961 | 6 | $2,171 |
 
 ## Top denial reason by plan
 
 | Plan | Denials | Top reason | Count |
 | --- | ---: | --- | ---: |
-| EPO | 94 | missing prior authorization | 27 |
-| HDHP | 68 | out-of-network provider | 18 |
-| HMO | 70 | duplicate claim | 16 |
-| PPO | 82 | timely filing exceeded | 23 |
+| EPO | 99 | missing prior authorization | 28 |
+| HDHP | 75 | out-of-network provider | 20 |
+| HMO | 81 | duplicate claim | 19 |
+| PPO | 83 | timely filing exceeded | 23 |
 
 ## Month-over-month trend (last 6 complete months)
 
@@ -142,7 +144,7 @@ Share of total paid (2720 claims) held by the largest claims. Synthetic data, il
 
 ## Potential duplicate services
 
-33 groups share a member, procedure and service date (review queue, not a quality failure).
+37 groups share a member, procedure and service date (review queue, not a quality failure).
 
 | Member | Procedure | Date | Claims | Paid |
 | --- | --- | --- | ---: | ---: |
