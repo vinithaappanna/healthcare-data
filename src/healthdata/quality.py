@@ -93,20 +93,41 @@ def check_service_dates(rows: list[dict], today: dt.date | None = None,
     return issues
 
 
-def run_all(store_path) -> list[str]:
-    """Run every check against the claims CSV. Returns all issues found."""
+CHECKS = [
+    ("amount consistency", check_amount_consistency),
+    ("denial reasons", check_denial_reasons),
+    ("one member per claim", check_duplicate_members_per_claim),
+    ("billed within procedure range", check_billed_in_procedure_range),
+    ("known diagnosis codes", check_known_diagnosis),
+    ("service dates", check_service_dates),
+]
+
+
+def load_rows(store_path) -> list[dict] | None:
     import csv
 
     path = Path(store_path)
     if not path.exists():
-        return [f"store not found: {path}"]
+        return None
     with path.open(newline="", encoding="utf-8") as fh:
-        rows = list(csv.DictReader(fh))
-    issues: list[str] = []
-    issues += check_amount_consistency(rows)
-    issues += check_denial_reasons(rows)
-    issues += check_duplicate_members_per_claim(rows)
-    issues += check_billed_in_procedure_range(rows)
-    issues += check_known_diagnosis(rows)
-    issues += check_service_dates(rows)
-    return issues
+        return list(csv.DictReader(fh))
+
+
+def run_checks(rows: list[dict]) -> list[tuple[str, list[str]]]:
+    """Every check with its own issues, in a stable order. A check that raises
+    is reported as an issue of its own rather than hiding the others."""
+    out = []
+    for name, check in CHECKS:
+        try:
+            out.append((name, check(rows)))
+        except Exception as exc:
+            out.append((name, [f"check crashed: {type(exc).__name__}: {exc}"]))
+    return out
+
+
+def run_all(store_path) -> list[str]:
+    """Run every check against the claims CSV. Returns all issues found."""
+    rows = load_rows(store_path)
+    if rows is None:
+        return [f"store not found: {store_path}"]
+    return [issue for _name, issues in run_checks(rows) for issue in issues]

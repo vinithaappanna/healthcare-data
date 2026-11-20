@@ -88,3 +88,36 @@ def test_service_date_exactly_at_limit_passes():
     from healthdata.quality import check_service_dates
     assert check_service_dates([{"claim_id": "L", "service_date": "2024-11-19"}],
                                today=dt.date(2026, 11, 19)) == []
+
+
+def test_run_checks_lists_each_check_and_isolates_crashes(monkeypatch):
+    from healthdata import quality
+    rows = [{"claim_id": "C1", "billed_amount": "100", "allowed_amount": "80", "paid_amount": "90",
+             "status": "paid", "denial_reason": "", "member_id": "M", "plan_type": "PPO",
+             "procedure_code": "99213", "diagnosis_code": "I10", "service_date": "2026-11-01"}]
+    results = dict(quality.run_checks(rows))
+    assert list(results) == [n for n, _f in quality.CHECKS]
+    assert results["amount consistency"]            # paid over allowed
+    assert results["denial reasons"] == []
+
+    def boom(_rows):
+        raise ValueError("bad")
+    monkeypatch.setattr(quality, "CHECKS", [("boom", boom), ("denial reasons", quality.check_denial_reasons)])
+    out = quality.run_checks(rows)
+    assert out[0][1] == ["check crashed: ValueError: bad"] and out[1] == ("denial reasons", [])
+
+
+def test_run_all_matches_run_checks_total(tmp_path):
+    from healthdata import quality
+    path = tmp_path / "claims.csv"
+    Pipeline(path).ingest(ClaimGenerator(seed=5).claims(40))
+    rows = quality.load_rows(path)
+    assert quality.run_all(path) == [i for _n, iss in quality.run_checks(rows) for i in iss] == []
+    assert quality.load_rows(tmp_path / "nope.csv") is None
+
+
+def test_gates_section_renders_pass_and_fail():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, gates=[("amount consistency", 0), ("service dates", 2)])
+    assert "1 of 2 checks passed" in md
+    assert "| amount consistency | 0 | pass |" in md and "| service dates | 2 | FAIL |" in md

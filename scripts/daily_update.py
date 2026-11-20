@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from healthdata import report
 from healthdata.claims import ClaimGenerator, next_batch_index
 from healthdata.pipeline import Pipeline
-from healthdata.quality import run_all
+from healthdata.quality import load_rows, run_all, run_checks
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE = ROOT / "data" / "claims.csv"
@@ -55,6 +55,7 @@ def main() -> int:
                                cost_sharing=pipe.plan_cost_sharing(),
                                outliers=pipe.denial_rate_outliers(),
                                concentration=pipe.paid_concentration(),
+                               gates=[(n, len(i)) for n, i in run_checks(load_rows(STORE) or [])],
                                procedures=pipe.procedure_summary(),
                                utilization=pipe.high_utilizers(),
                                age_bands=pipe.age_band_costs(),

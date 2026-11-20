@@ -21,7 +21,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     trend: list[dict] | None = None,
                     cost_sharing: list[dict] | None = None,
                     outliers: list[dict] | None = None,
-                    concentration: dict | None = None) -> str:
+                    concentration: dict | None = None,
+                    gates: list[tuple[str, int]] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -88,6 +89,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Top claims | Count | Share of paid |", "| --- | ---: | ---: |"]
         for t in concentration["tiers"]:
             lines.append(f"| top {t['top_pct']:.0%} | {t['claims']} | {t['share_of_paid']:.1%} |")
+    if gates:
+        failing = sum(1 for _n, c in gates if c)
+        lines += ["", "## Data quality gates", "",
+                  f"{len(gates) - failing} of {len(gates)} checks passed on this run.", "",
+                  "| Check | Issues | Result |", "| --- | ---: | --- |"]
+        for name, count in gates:
+            lines.append(f"| {name} | {count} | {'pass' if not count else 'FAIL'} |")
     if procedures:
         lines += ["", "## Top procedures by paid amount", "",
                   "| Code | Claims | Avg billed | Paid | Denial rate |",
