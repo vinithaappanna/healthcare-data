@@ -102,7 +102,9 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "`data_origin` marks how each stored claim came to be. Rows tagged `regenerated-*` are "
                   "older synthetic history that was repaired in place (one plan and age band per member, "
                   "no age-implausible procedure or diagnosis); `generated` rows were produced under the "
-                  "current rules. All of it is synthetic.", "",
+                  "current rules. Tagged counts are conservative, not an exact count of changed rows: the whole "
+                  "B05 batch is tagged even if a few of its rows already matched. Plan and age band are "
+                  "labels only, with no plan-specific benefits or clinical realism. All of it is synthetic.", "",
                   "| Origin | Claims |", "| --- | ---: |"]
         for k, n in origins.items():
             lines.append(f"| {k} | {n} |")

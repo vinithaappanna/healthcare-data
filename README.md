@@ -51,6 +51,14 @@ Repaired rows are tagged `regenerated-2026-11-21` (billed re-drawn in the proced
 range for changed procedures, allowed/paid ratios and denial status kept); claims
 generated under the current rules are `generated`. Earlier per-member and per-plan
 figures from before that date are superseded. The report lists the counts.
+The tag is conservative, not an exact count of changed rows: the plan/age fix was
+identified by diffing against the pre-fix snapshot, and all of batch B05 (ingested
+just before the fix, so absent from that snapshot) is tagged, even if a few of its
+rows already matched.
+
+**What the labels mean.** Plan type and age band are labels only. Nothing here
+implements plan-specific benefits, deductibles, networks or adjudication, and the
+age plausibility rule is a tiny illustrative filter, not clinical realism.
 
 All synthetic, from `healthdata.claims.ClaimGenerator` with a fixed seed per
 run. Amounts follow simple rules (paid <= allowed <= billed; denied claims pay
