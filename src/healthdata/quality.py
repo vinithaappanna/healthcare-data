@@ -93,6 +93,20 @@ def check_service_dates(rows: list[dict], today: dt.date | None = None,
     return issues
 
 
+def check_member_consistency(rows: list[dict]) -> list[str]:
+    """One member must keep one plan type and one age band across claims.
+    Conflicts make per-member and per-plan views meaningless."""
+    seen: dict[str, tuple] = {}
+    issues = []
+    for r in rows:
+        key = (r.get("plan_type"), r.get("age_band"))
+        first = seen.setdefault(r.get("member_id"), key)
+        if first != key:
+            issues.append(f"{r['claim_id']}: member {r.get('member_id')} has conflicting "
+                          f"plan/age band {key} vs {first}")
+    return issues
+
+
 CHECKS = [
     ("amount consistency", check_amount_consistency),
     ("denial reasons", check_denial_reasons),
@@ -100,6 +114,7 @@ CHECKS = [
     ("billed within procedure range", check_billed_in_procedure_range),
     ("known diagnosis codes", check_known_diagnosis),
     ("service dates", check_service_dates),
+    ("member consistency", check_member_consistency),
 ]
 
 

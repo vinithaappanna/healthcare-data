@@ -121,3 +121,33 @@ def test_gates_section_renders_pass_and_fail():
     md = report.render_markdown([], [], [], 0, gates=[("amount consistency", 0), ("service dates", 2)])
     assert "1 of 2 checks passed" in md
     assert "| amount consistency | 0 | pass |" in md and "| service dates | 2 | FAIL |" in md
+
+
+def test_member_consistency_flags_conflicts_and_generator_is_consistent():
+    from healthdata.quality import check_member_consistency
+    rows = [{"claim_id": "C1", "member_id": "M1", "plan_type": "PPO", "age_band": "30-44"},
+            {"claim_id": "C2", "member_id": "M1", "plan_type": "HMO", "age_band": "30-44"},
+            {"claim_id": "C3", "member_id": "M2", "plan_type": "HMO", "age_band": "0-17"}]
+    issues = check_member_consistency(rows)
+    assert len(issues) == 1 and "C2" in issues[0]
+    gen = ClaimGenerator(seed=5).claims(400)
+    assert check_member_consistency(gen) == []
+
+
+def test_harmonize_members_repairs_store_and_is_idempotent(tmp_path):
+    from healthdata.claims import member_profile
+    from healthdata.quality import load_rows
+    pipe = Pipeline(tmp_path / "c.csv")
+    claims = ClaimGenerator(seed=9).claims(30)
+    for c in claims[:10]:
+        c["plan_type"] = "HMO" if member_profile(c["member_id"])[0] != "HMO" else "PPO"   # force a conflict
+    pipe.ingest(claims)
+    first = pipe.harmonize_members()
+    assert first >= 10
+    assert check_member_consistency_rows(load_rows(tmp_path / "c.csv")) == []
+    assert pipe.harmonize_members() == 0
+
+
+def check_member_consistency_rows(rows):
+    from healthdata.quality import check_member_consistency
+    return check_member_consistency(rows)

@@ -71,6 +71,27 @@ class Pipeline:
             writer.writerows(store.values())
         return {"added": added, "rejected": rejected, "total": len(store)}
 
+    def harmonize_members(self) -> int:
+        """Rewrite plan_type and age_band in the store to each member's stable
+        profile (claims.member_profile). Older synthetic batches gave one
+        member different plans per claim, which made per-member views
+        meaningless. Idempotent; returns the number of rows changed."""
+        from .claims import member_profile
+
+        store = self.load_store()
+        changed = 0
+        for row in store.values():
+            plan, band = member_profile(row["member_id"])
+            if row["plan_type"] != plan or row["age_band"] != band:
+                row["plan_type"], row["age_band"] = plan, band
+                changed += 1
+        if changed:
+            with self.store_path.open("w", newline="", encoding="utf-8") as fh:
+                writer = csv.DictWriter(fh, fieldnames=FIELDNAMES)
+                writer.writeheader()
+                writer.writerows(store.values())
+        return changed
+
     def monthly_financials(self) -> list[dict]:
         """Billed/allowed/paid totals and denial rate per service month."""
         store = self.load_store()

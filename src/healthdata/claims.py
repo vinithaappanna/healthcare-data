@@ -7,6 +7,7 @@ tests and demos reproducible.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import random
 
 PLAN_TYPES = ["HMO", "PPO", "EPO", "HDHP"]
@@ -42,6 +43,14 @@ DENIAL_REASONS = [
 STATUSES = ["paid", "denied", "adjusted"]
 
 
+def member_profile(member_id: str) -> tuple[str, str]:
+    """Stable (plan_type, age_band) for a synthetic member id, derived from a
+    hash so every claim for one member agrees (a member does not change plan
+    or age band between claims in this toy dataset)."""
+    h = hashlib.sha256(member_id.encode()).digest()
+    return PLAN_TYPES[h[0] % len(PLAN_TYPES)], AGE_BANDS[h[1] % len(AGE_BANDS)]
+
+
 class ClaimGenerator:
     """Deterministic synthetic claims. `ClaimGenerator(seed).claims(n)`.
 
@@ -62,11 +71,10 @@ class ClaimGenerator:
 
     def _member(self) -> dict:
         rng = self._rng
-        return {
-            "member_id": f"MBR-{rng.randrange(1, 2000):04d}",
-            "plan_type": rng.choice(PLAN_TYPES),
-            "age_band": rng.choice(AGE_BANDS),
-        }
+        member_id = f"MBR-{rng.randrange(1, 2000):04d}"
+        rng.choice(PLAN_TYPES), rng.choice(AGE_BANDS)   # keep the random stream unchanged
+        plan, band = member_profile(member_id)
+        return {"member_id": member_id, "plan_type": plan, "age_band": band}
 
     def claim(self, service_date: dt.date | None = None) -> dict:
         rng = self._rng

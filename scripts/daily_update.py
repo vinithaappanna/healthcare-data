@@ -40,6 +40,9 @@ def main(root: Path | None = None) -> int:
                            id_prefix=day_prefix).claims(BATCH_SIZE, service_date=today)
 
     stats = pipe.ingest(batch)
+    fixed = pipe.harmonize_members()
+    if fixed:
+        print(f"harmonized plan/age band for {fixed} older rows")
     print(f"ingested {stats['added']} new claims from batch B{batch_no:02d} "
           f"({len(stats['rejected'])} rejected); store holds {stats['total']}")
     for rej in stats["rejected"]:
