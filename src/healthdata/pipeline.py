@@ -222,6 +222,25 @@ class Pipeline:
         rows.sort(key=lambda x: (x["allowed_to_billed"], x["procedure"]))
         return rows[:top]
 
+    def denied_dollars_by_reason(self) -> list[dict]:
+        """Billed dollars on denied claims per denial reason, largest first,
+        with each reason's share of all denied billed dollars. Counts alone can
+        hide that a rare reason hits expensive procedures. Synthetic,
+        illustrative."""
+        agg: dict[str, list[float]] = {}
+        for r in self.load_store().values():
+            if r.get("status") != "denied":
+                continue
+            a = agg.setdefault(r.get("denial_reason") or "unspecified", [0, 0.0])
+            a[0] += 1
+            a[1] += float(r["billed_amount"] or 0)
+        total = sum(v[1] for v in agg.values())
+        rows = [{"reason": k, "claims": n, "billed": round(b, 2),
+                 "share": round(b / total, 4) if total else 0.0,
+                 "avg_billed": round(b / n, 2)} for k, (n, b) in agg.items()]
+        rows.sort(key=lambda x: (-x["billed"], x["reason"]))
+        return rows
+
     def paid_curve(self, points: int = 20) -> list[tuple[float, float]]:
         """Cumulative share of paid dollars vs share of claims, largest claims
         first, as (claims_fraction, paid_fraction) from (0, 0) to (1, 1).

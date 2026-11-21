@@ -404,3 +404,29 @@ def test_discount_section_renders():
         {"procedure": "93000", "claims": 20, "billed": 2000.0, "allowed": 800.0, "allowed_to_billed": 0.4}])
     assert "| 93000 | 20 | $2,000 | $800 | 40.0% |" in md
     assert "Allowed-to-billed" not in report.render_markdown([], [], [], 0, discounts=[])
+
+
+def test_denied_dollars_by_reason(tmp_path):
+    pipe = Pipeline(tmp_path / "dd.csv")
+    pipe.ingest([
+        make_valid("CLM-1", billed_amount=900, allowed_amount=0, paid_amount=0, status="denied",
+                   denial_reason="not covered"),
+        make_valid("CLM-2", billed_amount=100, allowed_amount=0, paid_amount=0, status="denied",
+                   denial_reason="duplicate claim"),
+        make_valid("CLM-3", billed_amount=100, allowed_amount=0, paid_amount=0, status="denied",
+                   denial_reason="duplicate claim"),
+        make_valid("CLM-4", billed_amount=5000, allowed_amount=3000, paid_amount=2500),   # paid: ignored
+    ])
+    out = pipe.denied_dollars_by_reason()
+    assert [d["reason"] for d in out] == ["not covered", "duplicate claim"]
+    assert out[0]["billed"] == 900.0 and out[0]["share"] == 0.8182     # 900/1100
+    assert out[1]["claims"] == 2 and out[1]["avg_billed"] == 100.0
+    assert Pipeline(tmp_path / "e.csv").denied_dollars_by_reason() == []
+
+
+def test_denied_dollars_section_renders():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, denied_dollars=[
+        {"reason": "not covered", "claims": 3, "billed": 900.0, "share": 0.5, "avg_billed": 300.0}])
+    assert "| not covered | 3 | $900 | 50.0% | $300 |" in md
+    assert "Denied dollars" not in report.render_markdown([], [], [], 0, denied_dollars=[])

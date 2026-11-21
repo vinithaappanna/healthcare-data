@@ -24,7 +24,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     concentration: dict | None = None,
                     gates: list[tuple[str, int]] | None = None,
                     denial_procs: list[dict] | None = None,
-                    discounts: list[dict] | None = None) -> str:
+                    discounts: list[dict] | None = None,
+                    denied_dollars: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -84,6 +85,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                              f"{o['overall_rate']:.1%} | {o['z']:+.2f} |")
         else:
             lines += ["", "No plan/month cells outside the screen."]
+    if denied_dollars:
+        lines += ["", "## Denied dollars by reason", "",
+                  "Billed amount on denied claims. A reason with few claims can still "
+                  "carry a large share when it lands on expensive procedures. Synthetic, illustrative.", "",
+                  "| Reason | Claims | Billed | Share | Avg billed |",
+                  "| --- | ---: | ---: | ---: | ---: |"]
+        for d in denied_dollars:
+            lines.append(f"| {d['reason']} | {d['claims']} | ${d['billed']:,.0f} | "
+                         f"{d['share']:.1%} | ${d['avg_billed']:,.0f} |")
     if discounts:
         lines += ["", "## Allowed-to-billed ratio by procedure", "",
                   "Lowest ratios first (non-denied claims, procedures with enough volume). "
