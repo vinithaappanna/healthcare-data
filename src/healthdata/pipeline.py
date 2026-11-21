@@ -256,6 +256,24 @@ class Pipeline:
         rows.sort(key=lambda x: (-x["denied"], -x["denial_rate"], x["member"]))
         return rows[:top]
 
+    def plan_per_member(self) -> list[dict]:
+        """Per plan: distinct synthetic members seen, claims per member and
+        paid dollars per member in the store (a rough per-member-cost view; a
+        real PMPM needs enrollment months, which this synthetic data lacks).
+        Highest paid per member first."""
+        agg: dict[str, dict] = {}
+        for r in self.load_store().values():
+            a = agg.setdefault(r["plan_type"], {"members": set(), "claims": 0, "paid": 0.0})
+            a["members"].add(r["member_id"])
+            a["claims"] += 1
+            a["paid"] += float(r["paid_amount"] or 0)
+        rows = [{"plan": p, "members": len(a["members"]), "claims": a["claims"],
+                 "claims_per_member": round(a["claims"] / len(a["members"]), 2),
+                 "paid_per_member": round(a["paid"] / len(a["members"]), 2)}
+                for p, a in agg.items()]
+        rows.sort(key=lambda x: (-x["paid_per_member"], x["plan"]))
+        return rows
+
     def paid_curve(self, points: int = 20) -> list[tuple[float, float]]:
         """Cumulative share of paid dollars vs share of claims, largest claims
         first, as (claims_fraction, paid_fraction) from (0, 0) to (1, 1).

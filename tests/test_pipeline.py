@@ -452,3 +452,26 @@ def test_repeat_denials_section_renders():
         {"member": "MBR-0001", "claims": 5, "denied": 4, "denial_rate": 0.8}])
     assert "| MBR-0001 | 5 | 4 | 80.0% |" in md
     assert "repeated denials" not in report.render_markdown([], [], [], 0, repeat_denials=[])
+
+
+def test_plan_per_member(tmp_path):
+    pipe = Pipeline(tmp_path / "pm.csv")
+    pipe.ingest([
+        make_valid("CLM-1", plan_type="PPO", member_id="MBR-1", paid_amount=100),
+        make_valid("CLM-2", plan_type="PPO", member_id="MBR-1", paid_amount=50),
+        make_valid("CLM-3", plan_type="PPO", member_id="MBR-2", paid_amount=50),
+        make_valid("CLM-4", plan_type="HMO", member_id="MBR-3", paid_amount=40),
+    ])
+    out = pipe.plan_per_member()
+    assert [d["plan"] for d in out] == ["PPO", "HMO"]
+    assert out[0] == {"plan": "PPO", "members": 2, "claims": 3, "claims_per_member": 1.5,
+                      "paid_per_member": 100.0}
+    assert Pipeline(tmp_path / "e.csv").plan_per_member() == []
+
+
+def test_per_member_section_renders():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, per_member=[
+        {"plan": "PPO", "members": 2, "claims": 3, "claims_per_member": 1.5, "paid_per_member": 100.0}])
+    assert "| PPO | 2 | 3 | 1.50 | $100 |" in md
+    assert "Cost per member" not in report.render_markdown([], [], [], 0, per_member=[])

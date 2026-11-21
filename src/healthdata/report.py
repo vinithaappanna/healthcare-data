@@ -26,7 +26,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     denial_procs: list[dict] | None = None,
                     discounts: list[dict] | None = None,
                     denied_dollars: list[dict] | None = None,
-                    repeat_denials: list[dict] | None = None) -> str:
+                    repeat_denials: list[dict] | None = None,
+                    per_member: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -95,6 +96,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for d in denied_dollars:
             lines.append(f"| {d['reason']} | {d['claims']} | ${d['billed']:,.0f} | "
                          f"{d['share']:.1%} | ${d['avg_billed']:,.0f} |")
+    if per_member:
+        lines += ["", "## Cost per member by plan", "",
+                  "Distinct synthetic members, claims and paid dollars per member in the store. "
+                  "Not a true PMPM: there is no enrollment data. Illustrative only.", "",
+                  "| Plan | Members | Claims | Claims / member | Paid / member |",
+                  "| --- | ---: | ---: | ---: | ---: |"]
+        for d in per_member:
+            lines.append(f"| {d['plan']} | {d['members']} | {d['claims']} | "
+                         f"{d['claims_per_member']:.2f} | ${d['paid_per_member']:,.0f} |")
     if repeat_denials:
         lines += ["", "## Members with repeated denials", "",
                   "Synthetic member ids with the most denied claims. Illustrative only: "
