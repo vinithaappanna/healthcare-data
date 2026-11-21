@@ -241,6 +241,21 @@ class Pipeline:
         rows.sort(key=lambda x: (-x["billed"], x["reason"]))
         return rows
 
+    def repeat_denial_members(self, min_denials: int = 3, top: int = 5) -> list[dict]:
+        """Synthetic member ids with at least min_denials denied claims, most
+        denials first, with their denial rate. A starting point for an
+        outreach or billing-pattern review; with random synthetic data it is
+        illustrative only."""
+        agg: dict[str, list[int]] = {}
+        for r in self.load_store().values():
+            a = agg.setdefault(r["member_id"], [0, 0])
+            a[0] += 1
+            a[1] += r.get("status") == "denied"
+        rows = [{"member": m, "claims": n, "denied": d, "denial_rate": round(d / n, 4)}
+                for m, (n, d) in agg.items() if d >= min_denials]
+        rows.sort(key=lambda x: (-x["denied"], -x["denial_rate"], x["member"]))
+        return rows[:top]
+
     def paid_curve(self, points: int = 20) -> list[tuple[float, float]]:
         """Cumulative share of paid dollars vs share of claims, largest claims
         first, as (claims_fraction, paid_fraction) from (0, 0) to (1, 1).

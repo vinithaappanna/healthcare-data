@@ -430,3 +430,25 @@ def test_denied_dollars_section_renders():
         {"reason": "not covered", "claims": 3, "billed": 900.0, "share": 0.5, "avg_billed": 300.0}])
     assert "| not covered | 3 | $900 | 50.0% | $300 |" in md
     assert "Denied dollars" not in report.render_markdown([], [], [], 0, denied_dollars=[])
+
+
+def test_repeat_denial_members(tmp_path):
+    pipe = Pipeline(tmp_path / "rd.csv")
+    den = dict(allowed_amount=0, paid_amount=0, status="denied", denial_reason="not covered")
+    rows = [make_valid(f"CLM-A{i}", member_id="MBR-0001", **den) for i in range(4)]
+    rows += [make_valid("CLM-A9", member_id="MBR-0001")]
+    rows += [make_valid(f"CLM-B{i}", member_id="MBR-0002", **den) for i in range(3)]
+    rows += [make_valid(f"CLM-C{i}", member_id="MBR-0003", **den) for i in range(2)]   # below threshold
+    pipe.ingest(rows)
+    out = pipe.repeat_denial_members()
+    assert [(d["member"], d["denied"], d["claims"]) for d in out] == [("MBR-0001", 4, 5), ("MBR-0002", 3, 3)]
+    assert out[0]["denial_rate"] == 0.8
+    assert pipe.repeat_denial_members(min_denials=5) == []
+
+
+def test_repeat_denials_section_renders():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, repeat_denials=[
+        {"member": "MBR-0001", "claims": 5, "denied": 4, "denial_rate": 0.8}])
+    assert "| MBR-0001 | 5 | 4 | 80.0% |" in md
+    assert "repeated denials" not in report.render_markdown([], [], [], 0, repeat_denials=[])

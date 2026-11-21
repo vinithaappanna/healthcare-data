@@ -25,7 +25,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     gates: list[tuple[str, int]] | None = None,
                     denial_procs: list[dict] | None = None,
                     discounts: list[dict] | None = None,
-                    denied_dollars: list[dict] | None = None) -> str:
+                    denied_dollars: list[dict] | None = None,
+                    repeat_denials: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -94,6 +95,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for d in denied_dollars:
             lines.append(f"| {d['reason']} | {d['claims']} | ${d['billed']:,.0f} | "
                          f"{d['share']:.1%} | ${d['avg_billed']:,.0f} |")
+    if repeat_denials:
+        lines += ["", "## Members with repeated denials", "",
+                  "Synthetic member ids with the most denied claims. Illustrative only: "
+                  "the data is random, so this shows the report shape, not a real pattern.", "",
+                  "| Member | Claims | Denied | Denial rate |", "| --- | ---: | ---: | ---: |"]
+        for d in repeat_denials:
+            lines.append(f"| {d['member']} | {d['claims']} | {d['denied']} | {d['denial_rate']:.1%} |")
     if discounts:
         lines += ["", "## Allowed-to-billed ratio by procedure", "",
                   "Lowest ratios first (non-denied claims, procedures with enough volume). "

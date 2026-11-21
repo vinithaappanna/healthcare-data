@@ -60,6 +60,7 @@ def main(root: Path | None = None) -> int:
                                outliers=pipe.denial_rate_outliers(),
                                concentration=pipe.paid_concentration(),
                                discounts=pipe.procedure_discounts(),
+                               repeat_denials=pipe.repeat_denial_members(),
                                denied_dollars=pipe.denied_dollars_by_reason(),
                                denial_procs=pipe.procedures_by_denial_reason(),
                                gates=[(n, len(i)) for n, i in run_checks(load_rows(STORE) or [])],
