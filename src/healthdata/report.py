@@ -28,7 +28,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     denied_dollars: list[dict] | None = None,
                     repeat_denials: list[dict] | None = None,
                     per_member: list[dict] | None = None,
-                    origins: dict | None = None) -> str:
+                    origins: dict | None = None,
+                    reconciliation: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -97,6 +98,14 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for d in denied_dollars:
             lines.append(f"| {d['reason']} | {d['claims']} | ${d['billed']:,.0f} | "
                          f"{d['share']:.1%} | ${d['avg_billed']:,.0f} |")
+    if reconciliation:
+        bad = [r for r in reconciliation if not r["ok"]]
+        lines += ["", "## Aggregate reconciliation", "",
+                  ("Every view accounts for the whole store." if not bad else
+                   f"**{len(bad)} view(s) do not match the store.**"), "",
+                  "| Check | View | Store | Match |", "| --- | ---: | ---: | :---: |"]
+        for r in reconciliation:
+            lines.append(f"| {r['check']} | {r['view']:,} | {r['store']:,} | {'yes' if r['ok'] else '**NO**'} |")
     if origins and any(k != "generated" for k in origins):
         lines += ["", "## Data provenance", "",
                   "`data_origin` marks how each stored claim came to be. Rows tagged `regenerated-*` are "

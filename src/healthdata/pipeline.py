@@ -106,6 +106,36 @@ class Pipeline:
         return dict(sorted(Counter(r.get("data_origin") or "generated"
                                    for r in self.load_store().values()).items()))
 
+    def reconcile(self) -> list[dict]:
+        """Cross-check that each aggregate view accounts for the whole store:
+        claim counts (monthly, plan mix, plan performance, age bands, per-member
+        plans, procedure rows) and paid dollars (monthly vs age bands vs raw
+        store). Returns one row per check with the two compared values and ok.
+        Money compares to the cent (age bands within their own rounding). Views that drop rows silently (a blank
+        plan, an unknown month) show up here as a mismatch."""
+        store = self.load_store()
+        n = len(store)
+        paid = round(sum(float(r["paid_amount"] or 0) for r in store.values()), 2)
+        monthly = self.monthly_financials()
+        bands = self.age_band_costs()
+        checks = [
+            ("claims: monthly view", sum(m["claims"] for m in monthly), n),
+            ("claims: plan mix", sum(c for _p, c in self.plan_mix()), n),
+            ("claims: plan performance", sum(p["claims"] for p in self.plan_performance()), n),
+            ("claims: age bands", sum(b["claims"] for b in bands), n),
+            ("claims: cost per member", sum(p["claims"] for p in self.plan_per_member()), n),
+            ("paid $: monthly view", round(sum(m["paid"] for m in monthly), 2), paid),
+            # age bands store a per-claim average rounded to cents, so allow that rounding
+            ("paid $: age bands", round(sum(b["avg_paid"] * b["claims"] for b in bands), 2), paid,
+             0.005 * n + 0.01),
+            ("denied claims: reasons", sum(c for _r, c in self.denial_reasons()),
+             sum(1 for r in store.values() if r["status"] == "denied")),
+        ]
+        out = []
+        for name, a, b, *tol in checks:
+            out.append({"check": name, "view": a, "store": b, "ok": abs(a - b) <= (tol[0] if tol else 0.001)})
+        return out
+
     def monthly_financials(self) -> list[dict]:
         """Billed/allowed/paid totals and denial rate per service month."""
         store = self.load_store()

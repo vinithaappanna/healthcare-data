@@ -475,3 +475,33 @@ def test_per_member_section_renders():
         {"plan": "PPO", "members": 2, "claims": 3, "claims_per_member": 1.5, "paid_per_member": 100.0}])
     assert "| PPO | 2 | 3 | 1.50 | $100 |" in md
     assert "Cost per member" not in report.render_markdown([], [], [], 0, per_member=[])
+
+
+def test_reconcile_passes_on_clean_store_and_catches_dropped_rows(tmp_path):
+    from healthdata.claims import ClaimGenerator
+    pipe = Pipeline(tmp_path / "r.csv")
+    pipe.ingest(ClaimGenerator(seed=33).claims(250))
+    out = pipe.reconcile()
+    assert len(out) == 8 and all(r["ok"] for r in out)
+    # a blank plan_type silently drops the row from the plan views: reconcile must say so
+    store = pipe.load_store()
+    victim = next(iter(store.values()))
+    victim["plan_type"] = ""
+    import csv
+    from healthdata.pipeline import FIELDNAMES
+    with (tmp_path / "r.csv").open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=FIELDNAMES); w.writeheader(); w.writerows(store.values())
+    bad = {r["check"] for r in pipe.reconcile() if not r["ok"]}
+    assert {"claims: plan mix", "claims: plan performance"} <= bad or "claims: plan mix" in bad
+    assert "claims: monthly view" not in bad
+    assert Pipeline(tmp_path / "empty.csv").reconcile()[0]["ok"] is True
+
+
+def test_reconciliation_section_renders_pass_and_fail():
+    from healthdata import report
+    ok = report.render_markdown([], [], [], 0, reconciliation=[
+        {"check": "claims: plan mix", "view": 10, "store": 10, "ok": True}])
+    assert "accounts for the whole store" in ok and "| claims: plan mix | 10 | 10 | yes |" in ok
+    bad = report.render_markdown([], [], [], 0, reconciliation=[
+        {"check": "claims: plan mix", "view": 9, "store": 10, "ok": False}])
+    assert "1 view(s) do not match" in bad and "**NO**" in bad

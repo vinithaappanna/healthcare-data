@@ -52,6 +52,11 @@ def main(root: Path | None = None) -> int:
     for issue in issues:
         print(f"QUALITY ISSUE: {issue}")
 
+    for r in pipe.reconcile():
+        if not r["ok"]:
+            issues.append(f"reconciliation: {r['check']} view {r['view']} != store {r['store']}")
+            print(f"QUALITY ISSUE: {issues[-1]}")
+
     REPORTS.mkdir(exist_ok=True)
     monthly = pipe.monthly_financials()
     reasons = pipe.denial_reasons()
@@ -63,6 +68,7 @@ def main(root: Path | None = None) -> int:
                                outliers=pipe.denial_rate_outliers(),
                                concentration=pipe.paid_concentration(),
                                discounts=pipe.procedure_discounts(),
+                               reconciliation=pipe.reconcile(),
                                origins=pipe.origin_counts(),
                                per_member=pipe.plan_per_member(),
                                repeat_denials=pipe.repeat_denial_members(),
