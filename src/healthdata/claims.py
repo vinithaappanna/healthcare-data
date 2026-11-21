@@ -42,6 +42,48 @@ DENIAL_REASONS = [
 ]
 STATUSES = ["paid", "denied", "adjusted"]
 
+# Illustrative plausibility rules, not clinical guidance: age bands a code is
+# not generated for.
+AGE_RESTRICTED_PROCEDURES = {"27447": {"0-17"}}      # total knee replacement
+AGE_RESTRICTED_DIAGNOSES = {"Z00.00": {"0-17"}}      # general ADULT medical exam
+ORIGIN_REGENERATED = "regenerated-2026-11-21"        # data_origin of repaired history
+
+
+def age_plausible(age_band: str, procedure_code: str, diagnosis_code: str) -> bool:
+    return (age_band not in AGE_RESTRICTED_PROCEDURES.get(procedure_code, ())
+            and age_band not in AGE_RESTRICTED_DIAGNOSES.get(diagnosis_code, ()))
+
+
+def _frac(key: str) -> float:
+    return int.from_bytes(hashlib.sha256(key.encode()).digest()[2:6], "big") / 2**32
+
+
+def repair_age_plausibility(row: dict) -> bool:
+    """Deterministically replace an age-implausible procedure or diagnosis on a
+    stored row (in place). A new procedure is picked from the allowed list by
+    hash of claim_id; billed is re-drawn inside its illustrative range and
+    allowed/paid keep their original ratios, so amount rules and denial status
+    still hold. Returns True when the row changed."""
+    band, proc, dx = row["age_band"], row["procedure_code"], row["diagnosis_code"]
+    changed = False
+    if proc in AGE_RESTRICTED_PROCEDURES and band in AGE_RESTRICTED_PROCEDURES[proc]:
+        ok = [p for p in PROCEDURES if band not in AGE_RESTRICTED_PROCEDURES.get(p[0], ())]
+        code, _d, (lo, hi) = ok[int(_frac(row["claim_id"] + "p") * len(ok))]
+        old_b = float(row["billed_amount"]) or 1.0
+        allowed_ratio = float(row["allowed_amount"]) / old_b
+        paid_ratio = (float(row["paid_amount"]) / float(row["allowed_amount"])
+                      if float(row["allowed_amount"]) else 0.0)
+        billed = round(lo + _frac(row["claim_id"] + "b") * (hi - lo), 2)
+        allowed = round(billed * allowed_ratio, 2)
+        row.update(procedure_code=code, billed_amount=billed, allowed_amount=allowed,
+                   paid_amount=round(allowed * paid_ratio, 2))
+        changed = True
+    if dx in AGE_RESTRICTED_DIAGNOSES and band in AGE_RESTRICTED_DIAGNOSES[dx]:
+        ok_dx = [d for d in DIAGNOSES if band not in AGE_RESTRICTED_DIAGNOSES.get(d[0], ())]
+        row["diagnosis_code"] = ok_dx[int(_frac(row["claim_id"] + "d") * len(ok_dx))][0]
+        changed = True
+    return changed
+
 
 def member_profile(member_id: str) -> tuple[str, str]:
     """Stable (plan_type, age_band) for a synthetic member id, derived from a
@@ -80,8 +122,11 @@ class ClaimGenerator:
         rng = self._rng
         self._claim_seq += 1
         member = self._member()
-        code, _desc, (lo, hi) = rng.choice(PROCEDURES)
-        dx_code, _dx = rng.choice(DIAGNOSES)
+        band = member["age_band"]
+        code, _desc, (lo, hi) = rng.choice(
+            [p for p in PROCEDURES if band not in AGE_RESTRICTED_PROCEDURES.get(p[0], ())])
+        dx_code, _dx = rng.choice(
+            [d for d in DIAGNOSES if band not in AGE_RESTRICTED_DIAGNOSES.get(d[0], ())])
         billed = round(rng.uniform(lo, hi), 2)
         status = rng.choices(STATUSES, weights=[78, 12, 10])[0]
         denial_reason = rng.choice(DENIAL_REASONS) if status == "denied" else ""

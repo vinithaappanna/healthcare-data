@@ -44,6 +44,14 @@ The latest generated report lives at
 
 ## Data
 
+**Provenance.** The store has a `data_origin` column. On 2026-11-21 older synthetic
+history was repaired in place: early batches gave one member different plans and age
+bands on different claims, and some pediatric rows carried adult-only procedures.
+Repaired rows are tagged `regenerated-2026-11-21` (billed re-drawn in the procedure's
+range for changed procedures, allowed/paid ratios and denial status kept); claims
+generated under the current rules are `generated`. Earlier per-member and per-plan
+figures from before that date are superseded. The report lists the counts.
+
 All synthetic, from `healthdata.claims.ClaimGenerator` with a fixed seed per
 run. Amounts follow simple rules (paid <= allowed <= billed; denied claims pay
 nothing) so the marts and quality checks have realistic invariants to enforce.

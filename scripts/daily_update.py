@@ -42,7 +42,7 @@ def main(root: Path | None = None) -> int:
     stats = pipe.ingest(batch)
     fixed = pipe.harmonize_members()
     if fixed:
-        print(f"harmonized plan/age band for {fixed} older rows")
+        print(f"repaired {fixed} older synthetic rows (member profile / age plausibility)")
     print(f"ingested {stats['added']} new claims from batch B{batch_no:02d} "
           f"({len(stats['rejected'])} rejected); store holds {stats['total']}")
     for rej in stats["rejected"]:
@@ -63,6 +63,7 @@ def main(root: Path | None = None) -> int:
                                outliers=pipe.denial_rate_outliers(),
                                concentration=pipe.paid_concentration(),
                                discounts=pipe.procedure_discounts(),
+                               origins=pipe.origin_counts(),
                                per_member=pipe.plan_per_member(),
                                repeat_denials=pipe.repeat_denial_members(),
                                denied_dollars=pipe.denied_dollars_by_reason(),

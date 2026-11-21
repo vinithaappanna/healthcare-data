@@ -12,7 +12,7 @@ from pathlib import Path
 
 FIELDNAMES = ["claim_id", "member_id", "plan_type", "age_band", "service_date",
               "procedure_code", "diagnosis_code", "billed_amount",
-              "allowed_amount", "paid_amount", "status", "denial_reason"]
+              "allowed_amount", "paid_amount", "status", "denial_reason", "data_origin"]
 
 REQUIRED = ["claim_id", "member_id", "service_date", "billed_amount", "status"]
 VALID_STATUSES = {"paid", "denied", "adjusted"}
@@ -63,6 +63,7 @@ class Pipeline:
             if claim["claim_id"] in store:
                 continue
             store[claim["claim_id"]] = {name: claim.get(name, "") for name in FIELDNAMES}
+            store[claim["claim_id"]]["data_origin"] = claim.get("data_origin") or "generated"
             added += 1
         self.store_path.parent.mkdir(parents=True, exist_ok=True)
         with self.store_path.open("w", newline="", encoding="utf-8") as fh:
@@ -72,18 +73,26 @@ class Pipeline:
         return {"added": added, "rejected": rejected, "total": len(store)}
 
     def harmonize_members(self) -> int:
-        """Rewrite plan_type and age_band in the store to each member's stable
-        profile (claims.member_profile). Older synthetic batches gave one
-        member different plans per claim, which made per-member views
-        meaningless. Idempotent; returns the number of rows changed."""
-        from .claims import member_profile
+        """Repair older synthetic history in place: one stable plan_type and
+        age_band per member (claims.member_profile), and no age-implausible
+        procedure/diagnosis (claims.repair_age_plausibility). Changed rows get
+        data_origin = ORIGIN_REGENERATED so regenerated history stays
+        distinguishable from claims generated under the current rules.
+        Idempotent; returns the number of rows changed."""
+        from .claims import ORIGIN_REGENERATED, member_profile, repair_age_plausibility
 
         store = self.load_store()
         changed = 0
         for row in store.values():
             plan, band = member_profile(row["member_id"])
+            touched = False
             if row["plan_type"] != plan or row["age_band"] != band:
                 row["plan_type"], row["age_band"] = plan, band
+                touched = True
+            if repair_age_plausibility(row):
+                touched = True
+            if touched:
+                row["data_origin"] = ORIGIN_REGENERATED
                 changed += 1
         if changed:
             with self.store_path.open("w", newline="", encoding="utf-8") as fh:
@@ -91,6 +100,11 @@ class Pipeline:
                 writer.writeheader()
                 writer.writerows(store.values())
         return changed
+
+    def origin_counts(self) -> dict[str, int]:
+        """Claims per data_origin; blank legacy values count as generated."""
+        return dict(sorted(Counter(r.get("data_origin") or "generated"
+                                   for r in self.load_store().values()).items()))
 
     def monthly_financials(self) -> list[dict]:
         """Billed/allowed/paid totals and denial rate per service month."""

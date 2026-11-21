@@ -107,6 +107,16 @@ def check_member_consistency(rows: list[dict]) -> list[str]:
     return issues
 
 
+def check_age_plausibility(rows: list[dict]) -> list[str]:
+    """Illustrative rule: some codes are not generated for some age bands
+    (e.g. total knee replacement for 0-17). Not clinical guidance."""
+    from .claims import age_plausible
+
+    return [f"{r['claim_id']}: {r.get('procedure_code')}/{r.get('diagnosis_code')} implausible for age band {r.get('age_band')}"
+            for r in rows
+            if not age_plausible(r.get("age_band"), r.get("procedure_code"), r.get("diagnosis_code"))]
+
+
 CHECKS = [
     ("amount consistency", check_amount_consistency),
     ("denial reasons", check_denial_reasons),
@@ -115,6 +125,7 @@ CHECKS = [
     ("known diagnosis codes", check_known_diagnosis),
     ("service dates", check_service_dates),
     ("member consistency", check_member_consistency),
+    ("age plausibility", check_age_plausibility),
 ]
 
 

@@ -27,7 +27,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     discounts: list[dict] | None = None,
                     denied_dollars: list[dict] | None = None,
                     repeat_denials: list[dict] | None = None,
-                    per_member: list[dict] | None = None) -> str:
+                    per_member: list[dict] | None = None,
+                    origins: dict | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -96,6 +97,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for d in denied_dollars:
             lines.append(f"| {d['reason']} | {d['claims']} | ${d['billed']:,.0f} | "
                          f"{d['share']:.1%} | ${d['avg_billed']:,.0f} |")
+    if origins and any(k != "generated" for k in origins):
+        lines += ["", "## Data provenance", "",
+                  "`data_origin` marks how each stored claim came to be. Rows tagged `regenerated-*` are "
+                  "older synthetic history that was repaired in place (one plan and age band per member, "
+                  "no age-implausible procedure or diagnosis); `generated` rows were produced under the "
+                  "current rules. All of it is synthetic.", "",
+                  "| Origin | Claims |", "| --- | ---: |"]
+        for k, n in origins.items():
+            lines.append(f"| {k} | {n} |")
     if per_member:
         lines += ["", "## Cost per member by plan", "",
                   "Distinct synthetic members, claims and paid dollars per member in the store. "

@@ -151,3 +151,42 @@ def test_harmonize_members_repairs_store_and_is_idempotent(tmp_path):
 def check_member_consistency_rows(rows):
     from healthdata.quality import check_member_consistency
     return check_member_consistency(rows)
+
+
+def test_age_repair_keeps_amount_rules_and_denials_and_gate_catches_it(tmp_path):
+    from healthdata.claims import ORIGIN_REGENERATED, age_plausible
+    from healthdata.quality import check_age_plausibility, load_rows, run_all
+    base = dict(member_id="MBR-0001", service_date="2026-10-01", diagnosis_code="Z00.00",
+                age_band="0-17", plan_type="PPO")
+    rows = [dict(base, claim_id="CLM-K1", procedure_code="27447", billed_amount=20000,
+                 allowed_amount=15000, paid_amount=12000, status="paid", denial_reason=""),
+            dict(base, claim_id="CLM-K2", procedure_code="27447", billed_amount=30000,
+                 allowed_amount=0, paid_amount=0, status="denied", denial_reason="not covered")]
+    assert len(check_age_plausibility(rows)) == 2
+    # the same member profile must also hold for the gate to be isolated here
+    pipe = Pipeline(tmp_path / "a.csv")
+    pipe.ingest(rows)
+    pipe.harmonize_members()
+    fixed = {r["claim_id"]: r for r in load_rows(tmp_path / "a.csv")}
+    for r in fixed.values():
+        assert age_plausible(r["age_band"], r["procedure_code"], r["diagnosis_code"])
+        assert r["data_origin"] == ORIGIN_REGENERATED
+        assert float(r["paid_amount"]) <= float(r["allowed_amount"]) <= float(r["billed_amount"])
+    assert fixed["CLM-K2"]["status"] == "denied" and float(fixed["CLM-K2"]["paid_amount"]) == 0.0
+    assert run_all(tmp_path / "a.csv") == []
+    assert pipe.harmonize_members() == 0
+    assert pipe.origin_counts() == {ORIGIN_REGENERATED: 2}
+
+
+def test_new_claims_default_to_generated_and_gate_clean(tmp_path):
+    pipe = Pipeline(tmp_path / "g.csv")
+    pipe.ingest(ClaimGenerator(seed=21).claims(300))
+    assert pipe.origin_counts() == {"generated": 300}
+    assert run_all(tmp_path / "g.csv") == []
+
+
+def test_provenance_section_renders_only_with_regenerated_rows():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, origins={"generated": 5, "regenerated-2026-11-21": 7})
+    assert "| regenerated-2026-11-21 | 7 |" in md and "Data provenance" in md
+    assert "Data provenance" not in report.render_markdown([], [], [], 0, origins={"generated": 5})
