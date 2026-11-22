@@ -94,12 +94,41 @@ class Pipeline:
             if touched:
                 row["data_origin"] = ORIGIN_REGENERATED
                 changed += 1
+        changed += self._repair_unsupported_duplicate_denials(store)
         if changed:
             with self.store_path.open("w", newline="", encoding="utf-8") as fh:
                 writer = csv.DictWriter(fh, fieldnames=FIELDNAMES)
                 writer.writeheader()
                 writer.writerows(store.values())
         return changed
+
+    @staticmethod
+    def _repair_unsupported_duplicate_denials(store: dict) -> int:
+        """Older history drew "duplicate claim" at random, so many denials had no
+        earlier matching claim. Reassign those to another denial reason, chosen
+        by hash of claim_id (status, amounts and the denial itself are kept) and
+        tag the row regenerated. Idempotent."""
+        import hashlib
+        from .claims import RANDOM_DENIAL_REASONS
+
+        first: dict[tuple, str] = {}
+        for r in store.values():
+            key = (r["member_id"], r["procedure_code"], r["service_date"])
+            if key not in first or r["claim_id"] < first[key]:
+                first[key] = r["claim_id"]
+        n = 0
+        for r in store.values():
+            key = (r["member_id"], r["procedure_code"], r["service_date"])
+            if (r["status"] == "denied" and r["denial_reason"] == "duplicate claim"
+                    and first[key] == r["claim_id"]):
+                h = hashlib.sha256((r["claim_id"] + "r").encode()).digest()[0]
+                r["denial_reason"] = RANDOM_DENIAL_REASONS[h % len(RANDOM_DENIAL_REASONS)]
+                # keep earlier repair provenance: add this repair's date instead of overwriting
+                prev = r.get("data_origin") or ""
+                r["data_origin"] = (prev if "2026-11-22" in prev else
+                                    f"{prev}+2026-11-22" if prev.startswith("regenerated") else "regenerated-2026-11-22")
+                n += 1
+        return n
 
     def origin_counts(self) -> dict[str, int]:
         """Claims per data_origin; blank legacy values count as generated."""

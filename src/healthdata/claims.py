@@ -41,6 +41,11 @@ DENIAL_REASONS = [
     "timely filing exceeded",
 ]
 STATUSES = ["paid", "denied", "adjusted"]
+# "duplicate claim" is not drawn at random: it is only assigned to a claim that
+# really repeats an earlier one (same member, procedure, service date).
+RANDOM_DENIAL_REASONS = [r for r in DENIAL_REASONS if r != "duplicate claim"]
+DUPLICATE_RATE = 0.03          # share of generated claims that repeat an earlier claim in the batch
+DUPLICATE_CAUGHT = 0.7         # of those, share denied as "duplicate claim"; the rest still pay (leakage)
 
 # Illustrative plausibility rules, not clinical guidance: age bands a code is
 # not generated for.
@@ -129,7 +134,7 @@ class ClaimGenerator:
             [d for d in DIAGNOSES if band not in AGE_RESTRICTED_DIAGNOSES.get(d[0], ())])
         billed = round(rng.uniform(lo, hi), 2)
         status = rng.choices(STATUSES, weights=[78, 12, 10])[0]
-        denial_reason = rng.choice(DENIAL_REASONS) if status == "denied" else ""
+        denial_reason = rng.choice(RANDOM_DENIAL_REASONS) if status == "denied" else ""
         allowed = round(billed * rng.uniform(0.6, 0.95), 2)
         paid = round(allowed * rng.uniform(0.7, 1.0), 2) if status != "denied" else 0.0
         day = service_date or dt.date.today() - dt.timedelta(days=rng.randrange(0, 365))
@@ -150,8 +155,33 @@ class ClaimGenerator:
             "denial_reason": denial_reason,
         }
 
+    def _repeat_of(self, original: dict, service_date: dt.date | None) -> dict:
+        """A claim that repeats `original` (same member, procedure, diagnosis,
+        service date and billed amount) under a new claim id. Most are denied
+        as "duplicate claim"; the rest are paid, which is what a leakage screen
+        should find."""
+        rng = self._rng
+        dup = self.claim(service_date)
+        for key in ("member_id", "plan_type", "age_band", "service_date", "procedure_code",
+                    "diagnosis_code", "billed_amount"):
+            dup[key] = original[key]
+        if rng.random() < DUPLICATE_CAUGHT:
+            dup.update(status="denied", denial_reason="duplicate claim", allowed_amount=0.0, paid_amount=0.0)
+        else:
+            allowed = round(dup["billed_amount"] * rng.uniform(0.6, 0.95), 2)
+            dup.update(status="paid", denial_reason="", allowed_amount=allowed,
+                       paid_amount=round(allowed * rng.uniform(0.7, 1.0), 2))
+        return dup
+
     def claims(self, n: int, service_date: dt.date | None = None) -> list[dict]:
-        return [self.claim(service_date) for _ in range(n)]
+        out: list[dict] = []
+        for _ in range(n):
+            if out and self._rng.random() < DUPLICATE_RATE:
+                original = self._rng.choice(out)
+                out.append(self._repeat_of(original, service_date))
+            else:
+                out.append(self.claim(service_date))
+        return out
 
 
 def next_batch_index(claim_ids, day_prefix: str) -> int:

@@ -117,6 +117,21 @@ def check_age_plausibility(rows: list[dict]) -> list[str]:
             if not age_plausible(r.get("age_band"), r.get("procedure_code"), r.get("diagnosis_code"))]
 
 
+def check_duplicate_denials_supported(rows: list[dict]) -> list[str]:
+    """A claim denied as "duplicate claim" needs an earlier claim (lower
+    claim_id) with the same member, procedure and service date; otherwise the
+    denial reason has nothing to refer to."""
+    first: dict[tuple, str] = {}
+    for r in rows:
+        key = (r.get("member_id"), r.get("procedure_code"), r.get("service_date"))
+        if key not in first or r["claim_id"] < first[key]:
+            first[key] = r["claim_id"]
+    return [f"{r['claim_id']}: denied as duplicate but no earlier matching claim"
+            for r in rows
+            if r.get("status") == "denied" and r.get("denial_reason") == "duplicate claim"
+            and first[(r.get("member_id"), r.get("procedure_code"), r.get("service_date"))] == r["claim_id"]]
+
+
 CHECKS = [
     ("amount consistency", check_amount_consistency),
     ("denial reasons", check_denial_reasons),
@@ -126,6 +141,7 @@ CHECKS = [
     ("service dates", check_service_dates),
     ("member consistency", check_member_consistency),
     ("age plausibility", check_age_plausibility),
+    ("duplicate denials supported", check_duplicate_denials_supported),
 ]
 
 

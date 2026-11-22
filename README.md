@@ -59,6 +59,14 @@ identified by diffing against the pre-fix snapshot, and all of batch B05 (ingest
 just before the fix, so absent from that snapshot) is tagged, even if a few of its
 rows already matched.
 
+**Duplicate denials (2026-11-22).** "duplicate claim" used to be drawn at random, so
+most such denials had no earlier matching claim. The generator now assigns it only to
+deliberate repeats of an earlier claim in the same batch (about 3% of claims, ~70%
+denied as duplicate, the rest paid). Older unsupported denials were reassigned another
+reason (suffix `+2026-11-22` or tag `regenerated-2026-11-22` in `data_origin`), and a
+new gate checks that every duplicate denial has an earlier matching claim. Older
+repeats in the history are chance collisions, not designed duplicates.
+
 **What the labels mean.** Plan type and age band are labels only. Nothing here
 implements plan-specific benefits, deductibles, networks or adjudication, and the
 age plausibility rule is a tiny illustrative filter, not clinical realism.

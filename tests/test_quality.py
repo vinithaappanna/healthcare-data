@@ -190,3 +190,41 @@ def test_provenance_section_renders_only_with_regenerated_rows():
     md = report.render_markdown([], [], [], 0, origins={"generated": 5, "regenerated-2026-11-21": 7})
     assert "| regenerated-2026-11-21 | 7 |" in md and "Data provenance" in md
     assert "Data provenance" not in report.render_markdown([], [], [], 0, origins={"generated": 5})
+
+
+def test_generator_only_denies_duplicates_that_have_an_original(tmp_path):
+    from healthdata.quality import check_duplicate_denials_supported
+    claims = ClaimGenerator(seed=77).claims(1500)
+    assert check_duplicate_denials_supported(claims) == []
+    dups = [c for c in claims if c["denial_reason"] == "duplicate claim"]
+    assert dups                                              # repeats are generated on purpose
+    assert all(c["status"] == "denied" and c["paid_amount"] == 0 for c in dups)
+    from healthdata.pipeline import Pipeline
+    pipe = Pipeline(tmp_path / "g.csv")
+    pipe.ingest(claims)
+    out = pipe.duplicate_leakage()
+    assert out["unsupported_duplicate_denials"] == 0 and out["caught"] > 0 and out["leaked_claims"] > 0
+
+
+def test_gate_flags_unsupported_duplicate_denial_and_repair_fixes_it_keeping_provenance(tmp_path):
+    from healthdata.pipeline import Pipeline
+    from healthdata.quality import check_duplicate_denials_supported, load_rows, run_all
+    base = dict(member_id="MBR-0001", plan_type=None, age_band=None, service_date="2026-10-01",
+                procedure_code="99213", diagnosis_code="I10", billed_amount=100.0)
+    from healthdata.claims import member_profile
+    plan, band = member_profile("MBR-0001")
+    base.update(plan_type=plan, age_band=band)
+    orphan = dict(base, claim_id="CLM-X1", procedure_code="93000", status="denied", denial_reason="duplicate claim",
+                  allowed_amount=0.0, paid_amount=0.0)
+    original = dict(base, claim_id="CLM-Y1", status="paid", denial_reason="", allowed_amount=80.0, paid_amount=60.0)
+    repeat = dict(base, claim_id="CLM-Y2", status="denied", denial_reason="duplicate claim",
+                  allowed_amount=0.0, paid_amount=0.0)
+    assert len(check_duplicate_denials_supported([orphan, original, repeat])) == 1
+    pipe = Pipeline(tmp_path / "d.csv")
+    pipe.ingest([orphan, original, repeat])
+    assert pipe.harmonize_members() == 1
+    rows = {r["claim_id"]: r for r in load_rows(tmp_path / "d.csv")}
+    assert rows["CLM-X1"]["denial_reason"] != "duplicate claim" and rows["CLM-X1"]["status"] == "denied"
+    assert rows["CLM-X1"]["data_origin"] == "regenerated-2026-11-22"
+    assert rows["CLM-Y2"]["denial_reason"] == "duplicate claim" and rows["CLM-Y2"]["data_origin"] == "generated"
+    assert run_all(tmp_path / "d.csv") == [] and pipe.harmonize_members() == 0

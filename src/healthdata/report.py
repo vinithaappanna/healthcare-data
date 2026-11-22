@@ -104,7 +104,9 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         d = dup_leakage
         lines += ["", "## Duplicate-claim leakage screen", "",
                   "In each same member/procedure/date group the first claim is the original. "
-                  "A review queue, not proof: repeat services can be legitimate, and this synthetic data is random.", "",
+                  "A review queue, not proof: repeat services can be legitimate. In this synthetic data older repeats are "
+                  "chance collisions of random fields (mostly paid), while newer batches add deliberate repeats, "
+                  "most denied as duplicate and some paid. Illustrative, not real payment-integrity rates.", "",
                   f"- Groups with repeats: {d['groups']} ({d['later_claims']} later claims)",
                   f"- Later claims denied as duplicate: {d['caught']}",
                   f"- Later claims still paid: {d['leaked_claims']} (${d['leaked_paid']:,.0f} to review)",
@@ -129,7 +131,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         lines += ["", "## Data provenance", "",
                   "`data_origin` marks how each stored claim came to be. Rows tagged `regenerated-*` are "
                   "older synthetic history that was repaired in place (one plan and age band per member, "
-                  "no age-implausible procedure or diagnosis); `generated` rows were produced under the "
+                  "no age-implausible procedure or diagnosis, and \"duplicate claim\" denials without an earlier matching claim given another reason; a `+2026-11-22` suffix marks the second repair); `generated` rows were produced under the "
                   "current rules. Tagged counts are conservative, not an exact count of changed rows: the whole "
                   "B05 batch is tagged even if a few of its rows already matched. Plan and age band are "
                   "labels only, with no plan-specific benefits or clinical realism. All of it is synthetic.", "",
