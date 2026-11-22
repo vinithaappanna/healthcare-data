@@ -30,7 +30,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     per_member: list[dict] | None = None,
                     origins: dict | None = None,
                     reconciliation: list[dict] | None = None,
-                    size_bands: list[dict] | None = None) -> str:
+                    size_bands: list[dict] | None = None,
+                    dup_leakage: dict | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -99,6 +100,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for d in denied_dollars:
             lines.append(f"| {d['reason']} | {d['claims']} | ${d['billed']:,.0f} | "
                          f"{d['share']:.1%} | ${d['avg_billed']:,.0f} |")
+    if dup_leakage and (dup_leakage["groups"] or dup_leakage["unsupported_duplicate_denials"]):
+        d = dup_leakage
+        lines += ["", "## Duplicate-claim leakage screen", "",
+                  "In each same member/procedure/date group the first claim is the original. "
+                  "A review queue, not proof: repeat services can be legitimate, and this synthetic data is random.", "",
+                  f"- Groups with repeats: {d['groups']} ({d['later_claims']} later claims)",
+                  f"- Later claims denied as duplicate: {d['caught']}",
+                  f"- Later claims still paid: {d['leaked_claims']} (${d['leaked_paid']:,.0f} to review)",
+                  f"- Claims denied as duplicate with no matching original: {d['unsupported_duplicate_denials']}"]
     if size_bands and any(b["claims"] for b in size_bands):
         lines += ["", "## Claims by billed-amount band", "",
                   "Share of claims versus share of paid dollars. Band edges are illustrative; synthetic data.", "",

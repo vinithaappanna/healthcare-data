@@ -501,6 +501,37 @@ class Pipeline:
                             "paid": round(sum(float(r["paid_amount"] or 0) for r in rows), 2)})
         return sorted(out, key=lambda g: (-g["paid"], g["member_id"], g["service_date"]))
 
+    def duplicate_leakage(self) -> dict:
+        """Payment-integrity view of same member/procedure/date groups. In each
+        group the first claim by claim_id is treated as the original; later
+        claims that still paid are potential leakage (dollars to review), and
+        later claims denied as "duplicate claim" are catches. Also counts
+        claims denied as "duplicate claim" that have no matching sibling at all
+        (denials the data cannot support). A review queue, not proof: repeat
+        services can be legitimate, and this synthetic data is random."""
+        groups: dict[tuple, list[dict]] = {}
+        for row in self.load_store().values():
+            groups.setdefault((row["member_id"], row["procedure_code"], row["service_date"]), []).append(row)
+        out = {"groups": 0, "later_claims": 0, "caught": 0, "leaked_claims": 0, "leaked_paid": 0.0,
+               "unsupported_duplicate_denials": 0}
+        for rows in groups.values():
+            rows.sort(key=lambda r: r["claim_id"])
+            if len(rows) == 1:
+                r = rows[0]
+                out["unsupported_duplicate_denials"] += (
+                    r["status"] == "denied" and r["denial_reason"] == "duplicate claim")
+                continue
+            out["groups"] += 1
+            for r in rows[1:]:
+                out["later_claims"] += 1
+                if r["status"] == "denied" and r["denial_reason"] == "duplicate claim":
+                    out["caught"] += 1
+                elif float(r["paid_amount"] or 0) > 0:
+                    out["leaked_claims"] += 1
+                    out["leaked_paid"] += float(r["paid_amount"])
+        out["leaked_paid"] = round(out["leaked_paid"], 2)
+        return out
+
     def monthly_trend(self) -> list[dict]:
         """Month-over-month change in claim volume, paid dollars and denial
         rate (percentage points). The first month has no prior, so its

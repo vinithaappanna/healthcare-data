@@ -534,3 +534,35 @@ def test_size_band_section_renders_only_with_claims():
            "denial_rate": 0.0}
     assert "| under $100 | 3 | 60.0% | $120 | 10.0% | 0.0% |" in report.render_markdown([], [], [], 0, size_bands=[row])
     assert "billed-amount band" not in report.render_markdown([], [], [], 0, size_bands=[dict(row, claims=0)])
+
+
+def test_duplicate_leakage_original_catch_leak_and_unsupported(tmp_path):
+    pipe = Pipeline(tmp_path / "dl.csv")
+    dup = dict(allowed_amount=0, paid_amount=0, status="denied", denial_reason="duplicate claim")
+    pipe.ingest([
+        # group 1: original paid, repeat caught
+        make_valid("CLM-A1", member_id="M1", procedure_code="99213", paid_amount=50),
+        make_valid("CLM-A2", member_id="M1", procedure_code="99213", **dup),
+        # group 2: original paid, repeat also paid (leak 40), third denied for another reason
+        make_valid("CLM-B1", member_id="M2", procedure_code="99213", paid_amount=50),
+        make_valid("CLM-B2", member_id="M2", procedure_code="99213", paid_amount=40),
+        make_valid("CLM-B3", member_id="M2", procedure_code="99213", allowed_amount=0, paid_amount=0,
+                   status="denied", denial_reason="not covered"),
+        # lone claim denied as duplicate: unsupported
+        make_valid("CLM-C1", member_id="M3", procedure_code="99213", **dup),
+        # lone normal claim
+        make_valid("CLM-D1", member_id="M4", procedure_code="99213", paid_amount=10),
+    ])
+    out = pipe.duplicate_leakage()
+    assert out == {"groups": 2, "later_claims": 3, "caught": 1, "leaked_claims": 1, "leaked_paid": 40.0,
+                   "unsupported_duplicate_denials": 1}
+    assert Pipeline(tmp_path / "e.csv").duplicate_leakage()["groups"] == 0
+
+
+def test_leakage_section_renders_only_with_findings():
+    from healthdata import report
+    d = {"groups": 2, "later_claims": 3, "caught": 1, "leaked_claims": 1, "leaked_paid": 40.0,
+         "unsupported_duplicate_denials": 1}
+    md = report.render_markdown([], [], [], 0, dup_leakage=d)
+    assert "$40 to review" in md and "no matching original: 1" in md
+    assert "leakage screen" not in report.render_markdown([], [], [], 0, dup_leakage=dict(d, groups=0, unsupported_duplicate_denials=0))
