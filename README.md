@@ -23,7 +23,8 @@ seeded RNG - no real member, patient, provider or plan data anywhere.
   plan x month denial-rate outliers, paid-amount concentration, cost by age
   band, month-over-month trend, potential duplicate services and a per-check
   data quality gate table
-- `healthdata.cli` - read-only lookups: claim, member, plan, procedure, diagnosis
+- `healthdata.cli` - read-only lookups: claim, member, plan, procedure, diagnosis,
+  plus whole-store `reconcile`, `origins` and `bands`
 - `scripts/daily_update.py` - one update round: fresh synthetic batch, quality
   gates, regenerated report. Each run adds a new sequenced batch (claim ids
   carry a -Bnn- segment), so multiple rounds a day all bring new data;
@@ -36,6 +37,8 @@ pip install -r requirements.txt
 python examples/quick_demo.py       # 500 synthetic claims through the pipeline
 python scripts/daily_update.py      # full update round with quality gates
 python scripts/query.py member MBR-0076   # claim / member / plan / procedure / diagnosis lookups
+python scripts/query.py reconcile         # do all views account for the store? (exit 2 if not)
+python scripts/query.py origins           # claims per data_origin; also: bands
 python -m pytest                    # offline test suite
 ```
 

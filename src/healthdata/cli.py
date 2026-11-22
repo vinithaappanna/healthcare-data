@@ -77,8 +77,17 @@ def main(argv: list[str] | None = None, store: Path | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name in ("claim", "member", "plan", "procedure", "diagnosis"):
         sub.add_parser(name).add_argument("key")
+    for name in ("reconcile", "origins", "bands"):
+        sub.add_parser(name)        # whole-store views: no key
     args = parser.parse_args(argv)
     pipe = Pipeline(store or Path(__file__).resolve().parents[2] / "data" / "claims.csv")
+    if args.cmd in ("reconcile", "origins", "bands"):
+        if args.cmd == "reconcile":
+            rows = pipe.reconcile()
+            print(json.dumps(rows, indent=2))
+            return 0 if all(r["ok"] for r in rows) else 2     # 2: a view does not match the store
+        print(json.dumps(pipe.origin_counts() if args.cmd == "origins" else pipe.claim_size_bands(), indent=2))
+        return 0
     handler = {"claim": lookup_claim, "member": member_summary, "plan": plan_summary,
                "procedure": procedure_summary, "diagnosis": diagnosis_summary}[args.cmd]
     result = handler(pipe, args.key)

@@ -75,3 +75,23 @@ def test_main_procedure_and_diagnosis_commands(tmp_path, capsys):
     assert json.loads(capsys.readouterr().out)["claims"] == 3
     assert cli.main(["diagnosis", "ZZZ"], store=path) == 1
     assert "no diagnosis found" in capsys.readouterr().out
+
+
+def test_whole_store_commands_and_reconcile_exit_code(tmp_path, capsys):
+    path = store(tmp_path)
+    assert cli.main(["reconcile"], store=path) == 0
+    rows = json.loads(capsys.readouterr().out)
+    assert len(rows) == 8 and all(r["ok"] for r in rows)
+    assert cli.main(["origins"], store=path) == 0
+    n = len(Pipeline(path).load_store())
+    assert json.loads(capsys.readouterr().out) == {"generated": n}
+    assert cli.main(["bands"], store=path) == 0
+    assert sum(b["claims"] for b in json.loads(capsys.readouterr().out)) == n
+    # break the store: a blank plan makes the plan views drop that row, so exit code is 2
+    import csv
+    from healthdata.pipeline import FIELDNAMES
+    rows_in = list(Pipeline(path).load_store().values())
+    rows_in[0]["plan_type"] = ""
+    with path.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=FIELDNAMES); w.writeheader(); w.writerows(rows_in)
+    assert cli.main(["reconcile"], store=path) == 2
