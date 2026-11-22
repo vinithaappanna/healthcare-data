@@ -215,6 +215,23 @@ class Pipeline:
                  "paid": round(a[1], 2), "paid_share": round(a[1] / tp, 4) if tp else 0.0}
                 for (l, _lo, _hi), a in zip(labels, agg)]
 
+    def status_breakdown(self) -> list[dict]:
+        """Claims, billed and paid dollars per claim status (paid, denied,
+        adjusted first in that order, then any others by name). The base view
+        the other sections slice; shares are of all claims in the store."""
+        agg: dict[str, dict] = {}
+        for r in self.load_store().values():
+            a = agg.setdefault(r["status"] or "unknown", {"claims": 0, "billed": 0.0, "paid": 0.0})
+            a["claims"] += 1
+            a["billed"] += float(r["billed_amount"] or 0)
+            a["paid"] += float(r["paid_amount"] or 0)
+        total = sum(a["claims"] for a in agg.values())
+        order = {"paid": 0, "adjusted": 1, "denied": 2}
+        return [{"status": k, "claims": a["claims"],
+                 "share": round(a["claims"] / total, 4) if total else 0.0,
+                 "billed": round(a["billed"], 2), "paid": round(a["paid"], 2)}
+                for k, a in sorted(agg.items(), key=lambda kv: (order.get(kv[0], 9), kv[0]))]
+
     def monthly_financials(self) -> list[dict]:
         """Billed/allowed/paid totals and denial rate per service month."""
         store = self.load_store()

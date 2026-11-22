@@ -588,3 +588,27 @@ def test_member_dist_section_renders_only_with_members():
     row = {"bucket": "1 claim", "members": 3, "member_share": 0.5, "paid": 90.0, "paid_share": 0.25}
     assert "| 1 claim | 3 | 50.0% | $90 | 25.0% |" in report.render_markdown([], [], [], 0, member_dist=[row])
     assert "Members by number" not in report.render_markdown([], [], [], 0, member_dist=[dict(row, members=0)])
+
+
+def test_status_breakdown_order_shares_and_totals(tmp_path):
+    pipe = Pipeline(tmp_path / "sb.csv")
+    pipe.ingest([
+        make_valid("CLM-1", status="paid", billed_amount=100, allowed_amount=80, paid_amount=60),
+        make_valid("CLM-2", status="paid", billed_amount=100, allowed_amount=80, paid_amount=40),
+        make_valid("CLM-3", status="adjusted", billed_amount=200, allowed_amount=150, paid_amount=100),
+        make_valid("CLM-4", status="denied", billed_amount=500, allowed_amount=0, paid_amount=0,
+                   denial_reason="not covered"),
+    ])
+    out = pipe.status_breakdown()
+    assert [s["status"] for s in out] == ["paid", "adjusted", "denied"]
+    assert out[0] == {"status": "paid", "claims": 2, "share": 0.5, "billed": 200.0, "paid": 100.0}
+    assert out[2]["paid"] == 0.0 and out[2]["billed"] == 500.0
+    assert sum(s["claims"] for s in out) == 4
+    assert Pipeline(tmp_path / "e.csv").status_breakdown() == []
+
+
+def test_status_section_renders():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, statuses=[
+        {"status": "paid", "claims": 3, "share": 0.75, "billed": 300.0, "paid": 200.0}])
+    assert "| paid | 3 | 75.0% | $300 | $200 |" in md

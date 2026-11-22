@@ -32,7 +32,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     reconciliation: list[dict] | None = None,
                     size_bands: list[dict] | None = None,
                     dup_leakage: dict | None = None,
-                    member_dist: list[dict] | None = None) -> str:
+                    member_dist: list[dict] | None = None,
+                    statuses: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -57,6 +58,12 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
             f"| {m['month']} | {m['claims']} | ${m['billed']:,.0f} | "
             f"${m['allowed']:,.0f} | ${m['paid']:,.0f} | {m['denial_rate']:.1%} |"
         )
+    if statuses:
+        lines += ["", "## Claim status breakdown", "",
+                  "| Status | Claims | Share | Billed | Paid |", "| --- | ---: | ---: | ---: | ---: |"]
+        for st in statuses:
+            lines.append(f"| {st['status']} | {st['claims']} | {st['share']:.1%} | "
+                         f"${st['billed']:,.0f} | ${st['paid']:,.0f} |")
     lines += ["", "## Denial reasons", ""]
     for reason, count in denial_reasons:
         lines.append(f"- {reason} ({count})")
