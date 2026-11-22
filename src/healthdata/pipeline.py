@@ -191,6 +191,30 @@ class Pipeline:
                  "denial_rate": round(a["denied"] / a["claims"], 4) if a["claims"] else 0.0}
                 for (name, _lo, _hi), a in zip(self.SIZE_BANDS, agg)]
 
+    def member_claim_distribution(self) -> list[dict]:
+        """Members grouped by how many claims they have (1, 2, 3, 4+): members,
+        share of members, and share of paid dollars. Shows whether spend sits
+        with frequent users. Synthetic, illustrative; no enrollment data, so
+        members with zero claims are not visible."""
+        per: dict[str, list] = {}
+        for r in self.load_store().values():
+            m = per.setdefault(r["member_id"], [0, 0.0])
+            m[0] += 1
+            m[1] += float(r["paid_amount"] or 0)
+        labels = [("1 claim", 1, 1), ("2 claims", 2, 2), ("3 claims", 3, 3), ("4+ claims", 4, 10**9)]
+        agg = [[0, 0.0] for _ in labels]
+        for n, paid in per.values():
+            for i, (_l, lo, hi) in enumerate(labels):
+                if lo <= n <= hi:
+                    agg[i][0] += 1
+                    agg[i][1] += paid
+                    break
+        tm = sum(a[0] for a in agg)
+        tp = sum(a[1] for a in agg)
+        return [{"bucket": l, "members": a[0], "member_share": round(a[0] / tm, 4) if tm else 0.0,
+                 "paid": round(a[1], 2), "paid_share": round(a[1] / tp, 4) if tp else 0.0}
+                for (l, _lo, _hi), a in zip(labels, agg)]
+
     def monthly_financials(self) -> list[dict]:
         """Billed/allowed/paid totals and denial rate per service month."""
         store = self.load_store()

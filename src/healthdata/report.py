@@ -31,7 +31,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     origins: dict | None = None,
                     reconciliation: list[dict] | None = None,
                     size_bands: list[dict] | None = None,
-                    dup_leakage: dict | None = None) -> str:
+                    dup_leakage: dict | None = None,
+                    member_dist: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -111,6 +112,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   f"- Later claims denied as duplicate: {d['caught']}",
                   f"- Later claims still paid: {d['leaked_claims']} (${d['leaked_paid']:,.0f} to review)",
                   f"- Claims denied as duplicate with no matching original: {d['unsupported_duplicate_denials']}"]
+    if member_dist and any(b["members"] for b in member_dist):
+        lines += ["", "## Members by number of claims", "",
+                  "How many claims each synthetic member has, and where paid dollars sit. "
+                  "Members with no claims are not visible (no enrollment data). Illustrative.", "",
+                  "| Claims per member | Members | % of members | Paid | % of paid |",
+                  "| --- | ---: | ---: | ---: | ---: |"]
+        for b in member_dist:
+            lines.append(f"| {b['bucket']} | {b['members']} | {b['member_share']:.1%} | "
+                         f"${b['paid']:,.0f} | {b['paid_share']:.1%} |")
     if size_bands and any(b["claims"] for b in size_bands):
         lines += ["", "## Claims by billed-amount band", "",
                   "Share of claims versus share of paid dollars. Band edges are illustrative; synthetic data.", "",

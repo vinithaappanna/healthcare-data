@@ -566,3 +566,25 @@ def test_leakage_section_renders_only_with_findings():
     md = report.render_markdown([], [], [], 0, dup_leakage=d)
     assert "$40 to review" in md and "no matching original: 1" in md
     assert "leakage screen" not in report.render_markdown([], [], [], 0, dup_leakage=dict(d, groups=0, unsupported_duplicate_denials=0))
+
+
+def test_member_claim_distribution_buckets_and_shares(tmp_path):
+    pipe = Pipeline(tmp_path / "md.csv")
+    rows = [make_valid("CLM-A1", member_id="M1", paid_amount=10)]
+    rows += [make_valid(f"CLM-B{i}", member_id="M2", paid_amount=20) for i in range(2)]
+    rows += [make_valid(f"CLM-C{i}", member_id="M3", paid_amount=30) for i in range(5)]   # 4+ bucket
+    pipe.ingest(rows)
+    out = {b["bucket"]: b for b in pipe.member_claim_distribution()}
+    assert out["1 claim"]["members"] == 1 and out["2 claims"]["paid"] == 40.0
+    assert out["3 claims"]["members"] == 0
+    assert out["4+ claims"]["members"] == 1 and out["4+ claims"]["paid"] == 150.0
+    assert abs(sum(b["member_share"] for b in out.values()) - 1.0) < 0.001
+    assert abs(sum(b["paid_share"] for b in out.values()) - 1.0) < 0.001
+    assert all(b["members"] == 0 for b in Pipeline(tmp_path / "e.csv").member_claim_distribution())
+
+
+def test_member_dist_section_renders_only_with_members():
+    from healthdata import report
+    row = {"bucket": "1 claim", "members": 3, "member_share": 0.5, "paid": 90.0, "paid_share": 0.25}
+    assert "| 1 claim | 3 | 50.0% | $90 | 25.0% |" in report.render_markdown([], [], [], 0, member_dist=[row])
+    assert "Members by number" not in report.render_markdown([], [], [], 0, member_dist=[dict(row, members=0)])
