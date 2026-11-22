@@ -68,6 +68,7 @@ def main(root: Path | None = None) -> int:
                                outliers=pipe.denial_rate_outliers(),
                                concentration=pipe.paid_concentration(),
                                discounts=pipe.procedure_discounts(),
+                               size_bands=pipe.claim_size_bands(),
                                reconciliation=pipe.reconcile(),
                                origins=pipe.origin_counts(),
                                per_member=pipe.plan_per_member(),

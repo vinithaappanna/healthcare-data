@@ -505,3 +505,32 @@ def test_reconciliation_section_renders_pass_and_fail():
     bad = report.render_markdown([], [], [], 0, reconciliation=[
         {"check": "claims: plan mix", "view": 9, "store": 10, "ok": False}])
     assert "1 view(s) do not match" in bad and "**NO**" in bad
+
+
+def test_claim_size_bands_edges_shares_and_totals(tmp_path):
+    pipe = Pipeline(tmp_path / "s.csv")
+    pipe.ingest([
+        make_valid("CLM-1", billed_amount=99.99, allowed_amount=50, paid_amount=40),
+        make_valid("CLM-2", billed_amount=100, allowed_amount=80, paid_amount=60),       # edge: next band
+        make_valid("CLM-3", billed_amount=9999.99, allowed_amount=5000, paid_amount=4000),
+        make_valid("CLM-4", billed_amount=10000, allowed_amount=8000, paid_amount=5900,
+                   status="adjusted"),
+        make_valid("CLM-5", billed_amount=20000, allowed_amount=0, paid_amount=0, status="denied",
+                   denial_reason="not covered"),
+    ])
+    out = {b["band"]: b for b in pipe.claim_size_bands()}
+    assert [b["claims"] for b in pipe.claim_size_bands()] == [1, 1, 1, 2]
+    assert out["$100-$999"]["paid"] == 60.0
+    big = out["$10,000+"]
+    assert big["denial_rate"] == 0.5 and big["claim_share"] == 0.4
+    assert abs(sum(b["paid_share"] for b in out.values()) - 1.0) < 0.001
+    assert sum(b["claims"] for b in out.values()) == 5          # every claim in exactly one band
+    assert all(b["claims"] == 0 for b in Pipeline(tmp_path / "e.csv").claim_size_bands())
+
+
+def test_size_band_section_renders_only_with_claims():
+    from healthdata import report
+    row = {"band": "under $100", "claims": 3, "claim_share": 0.6, "paid": 120.0, "paid_share": 0.1,
+           "denial_rate": 0.0}
+    assert "| under $100 | 3 | 60.0% | $120 | 10.0% | 0.0% |" in report.render_markdown([], [], [], 0, size_bands=[row])
+    assert "billed-amount band" not in report.render_markdown([], [], [], 0, size_bands=[dict(row, claims=0)])

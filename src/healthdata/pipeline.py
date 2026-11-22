@@ -136,6 +136,32 @@ class Pipeline:
             out.append({"check": name, "view": a, "store": b, "ok": abs(a - b) <= (tol[0] if tol else 0.001)})
         return out
 
+    SIZE_BANDS = [("under $100", 0, 100), ("$100-$999", 100, 1000), ("$1,000-$9,999", 1000, 10000),
+                  ("$10,000+", 10000, float("inf"))]
+
+    def claim_size_bands(self) -> list[dict]:
+        """Claims, paid dollars and denial rate by billed-amount band, smallest
+        band first, with each band's share of claims and of paid dollars. Shows
+        how a few large claims dominate spend while most claims are small.
+        Band edges are illustrative. Every claim lands in exactly one band."""
+        agg = [{"claims": 0, "paid": 0.0, "denied": 0} for _ in self.SIZE_BANDS]
+        for r in self.load_store().values():
+            billed = float(r["billed_amount"] or 0)
+            for i, (_n, lo, hi) in enumerate(self.SIZE_BANDS):
+                if lo <= billed < hi:
+                    agg[i]["claims"] += 1
+                    agg[i]["paid"] += float(r["paid_amount"] or 0)
+                    agg[i]["denied"] += r["status"] == "denied"
+                    break
+        tc = sum(a["claims"] for a in agg)
+        tp = sum(a["paid"] for a in agg)
+        return [{"band": name, "claims": a["claims"],
+                 "claim_share": round(a["claims"] / tc, 4) if tc else 0.0,
+                 "paid": round(a["paid"], 2),
+                 "paid_share": round(a["paid"] / tp, 4) if tp else 0.0,
+                 "denial_rate": round(a["denied"] / a["claims"], 4) if a["claims"] else 0.0}
+                for (name, _lo, _hi), a in zip(self.SIZE_BANDS, agg)]
+
     def monthly_financials(self) -> list[dict]:
         """Billed/allowed/paid totals and denial rate per service month."""
         store = self.load_store()

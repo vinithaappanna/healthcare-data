@@ -29,7 +29,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     repeat_denials: list[dict] | None = None,
                     per_member: list[dict] | None = None,
                     origins: dict | None = None,
-                    reconciliation: list[dict] | None = None) -> str:
+                    reconciliation: list[dict] | None = None,
+                    size_bands: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -98,6 +99,14 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for d in denied_dollars:
             lines.append(f"| {d['reason']} | {d['claims']} | ${d['billed']:,.0f} | "
                          f"{d['share']:.1%} | ${d['avg_billed']:,.0f} |")
+    if size_bands and any(b["claims"] for b in size_bands):
+        lines += ["", "## Claims by billed-amount band", "",
+                  "Share of claims versus share of paid dollars. Band edges are illustrative; synthetic data.", "",
+                  "| Billed band | Claims | % of claims | Paid | % of paid | Denial rate |",
+                  "| --- | ---: | ---: | ---: | ---: | ---: |"]
+        for b in size_bands:
+            lines.append(f"| {b['band']} | {b['claims']} | {b['claim_share']:.1%} | ${b['paid']:,.0f} | "
+                         f"{b['paid_share']:.1%} | {b['denial_rate']:.1%} |")
     if reconciliation:
         bad = [r for r in reconciliation if not r["ok"]]
         lines += ["", "## Aggregate reconciliation", "",
