@@ -68,6 +68,7 @@ def main(root: Path | None = None) -> int:
                                outliers=pipe.denial_rate_outliers(),
                                concentration=pipe.paid_concentration(),
                                discounts=pipe.procedure_discounts(),
+                               diagnoses=pipe.diagnosis_summary(),
                                statuses=pipe.status_breakdown(),
                                member_dist=pipe.member_claim_distribution(),
                                dup_leakage=pipe.duplicate_leakage(),

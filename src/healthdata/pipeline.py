@@ -232,6 +232,26 @@ class Pipeline:
                  "billed": round(a["billed"], 2), "paid": round(a["paid"], 2)}
                 for k, a in sorted(agg.items(), key=lambda kv: (order.get(kv[0], 9), kv[0]))]
 
+    def diagnosis_summary(self, top: int = 6) -> list[dict]:
+        """Top diagnosis codes by total paid, with description, claim count,
+        average billed and denial rate. Codes and descriptions are an
+        illustrative teaching list, not authoritative coding. Synthetic data."""
+        from .claims import DIAGNOSES
+
+        desc = {code: d for code, d in DIAGNOSES}
+        agg: dict[str, dict] = {}
+        for row in self.load_store().values():
+            a = agg.setdefault(row["diagnosis_code"] or "Unknown",
+                               {"claims": 0, "denied": 0, "billed": 0.0, "paid": 0.0})
+            a["claims"] += 1
+            a["denied"] += row["status"] == "denied"
+            a["billed"] += float(row["billed_amount"] or 0)
+            a["paid"] += float(row["paid_amount"] or 0)
+        out = [{"code": code, "description": desc.get(code, ""), "claims": a["claims"],
+                "avg_billed": round(a["billed"] / a["claims"], 2), "paid": round(a["paid"], 2),
+                "denial_rate": round(a["denied"] / a["claims"], 4)} for code, a in agg.items()]
+        return sorted(out, key=lambda r: (-r["paid"], r["code"]))[:top]
+
     def monthly_financials(self) -> list[dict]:
         """Billed/allowed/paid totals and denial rate per service month."""
         store = self.load_store()

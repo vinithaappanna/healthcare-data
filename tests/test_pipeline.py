@@ -612,3 +612,29 @@ def test_status_section_renders():
     md = report.render_markdown([], [], [], 0, statuses=[
         {"status": "paid", "claims": 3, "share": 0.75, "billed": 300.0, "paid": 200.0}])
     assert "| paid | 3 | 75.0% | $300 | $200 |" in md
+
+
+def test_diagnosis_summary_math_descriptions_and_order(tmp_path):
+    pipe = Pipeline(tmp_path / "dx.csv")
+    pipe.ingest([
+        make_valid("CLM-1", diagnosis_code="I10", billed_amount=100, allowed_amount=80, paid_amount=60),
+        make_valid("CLM-2", diagnosis_code="I10", billed_amount=300, allowed_amount=200, paid_amount=140),
+        make_valid("CLM-3", diagnosis_code="R51", billed_amount=500, allowed_amount=400, paid_amount=300),
+        make_valid("CLM-4", diagnosis_code="M54.5", billed_amount=100, allowed_amount=0, paid_amount=0,
+                   status="denied", denial_reason="not covered"),
+    ])
+    out = pipe.diagnosis_summary()
+    assert [d["code"] for d in out][:2] == ["R51", "I10"]
+    assert out[1] == {"code": "I10", "description": "Essential hypertension", "claims": 2,
+                      "avg_billed": 200.0, "paid": 200.0, "denial_rate": 0.0}
+    m54 = next(d for d in out if d["code"] == "M54.5")
+    assert m54["denial_rate"] == 1.0 and m54["paid"] == 0.0
+    assert Pipeline(tmp_path / "e.csv").diagnosis_summary() == []
+
+
+def test_diagnosis_section_renders():
+    from healthdata import report
+    md = report.render_markdown([], [], [], 0, diagnoses=[
+        {"code": "I10", "description": "Essential hypertension", "claims": 2, "avg_billed": 200.0,
+         "paid": 200.0, "denial_rate": 0.0}])
+    assert "| I10 | Essential hypertension | 2 | $200 | $200 | 0.0% |" in md
