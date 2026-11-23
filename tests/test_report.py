@@ -50,3 +50,20 @@ def test_plan_performance_section_embeds_chart():
     md = report.render_markdown([], [], [], 0, plan_perf=[
         {"plan": "PPO", "claims": 2, "denial_rate": 0.5, "paid_to_billed": 0.3}])
     assert "plan_denial_rates.png" in md
+
+
+def test_size_band_chart_renders_and_handles_empty(tmp_path):
+    bands = [{"band": "under $100", "claims": 10, "claim_share": 0.5, "paid": 100.0, "paid_share": 0.1,
+              "denial_rate": 0.0},
+             {"band": "$10,000+", "claims": 10, "claim_share": 0.5, "paid": 900.0, "paid_share": 0.9,
+              "denial_rate": 0.0}]
+    assert report.plot_size_bands(bands, tmp_path / "s.png") is True
+    assert (tmp_path / "s.png").stat().st_size > 1000
+    assert report.plot_size_bands([], tmp_path / "e.png") is False
+    assert report.plot_size_bands([dict(bands[0], claims=0)], tmp_path / "z.png") is False
+
+
+def test_size_band_section_embeds_chart():
+    row = {"band": "under $100", "claims": 3, "claim_share": 0.6, "paid": 120.0, "paid_share": 0.1,
+           "denial_rate": 0.0}
+    assert "size_bands.png" in report.render_markdown([], [], [], 0, size_bands=[row])

@@ -94,6 +94,8 @@ def main(root: Path | None = None) -> int:
         print("wrote concentration chart")
     if report.plot_plan_denial_rates(pipe.plan_performance(), REPORTS / "plan_denial_rates.png"):
         print("wrote plan denial chart")
+    if report.plot_size_bands(pipe.claim_size_bands(), REPORTS / "size_bands.png"):
+        print("wrote size band chart")
     if report.plot_age_band_costs(pipe.age_band_costs(), REPORTS / "age_band_costs.png"):
         print("wrote age band chart")
     if report.plot_denial_reasons(reasons, REPORTS / "denial_reasons.png"):

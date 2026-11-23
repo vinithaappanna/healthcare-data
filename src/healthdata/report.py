@@ -131,6 +131,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
     if size_bands and any(b["claims"] for b in size_bands):
         lines += ["", "## Claims by billed-amount band", "",
                   "Share of claims versus share of paid dollars. Band edges are illustrative; synthetic data.", "",
+                  "![Claims vs paid by billed band](size_bands.png)", "",
                   "| Billed band | Claims | % of claims | Paid | % of paid | Denial rate |",
                   "| --- | ---: | ---: | ---: | ---: | ---: |"]
         for b in size_bands:
@@ -350,6 +351,32 @@ def plot_plan_denial_rates(plan_perf: list[dict], out_path, min_claims: int = 1)
     ax.set_ylabel("% of claims denied")
     ax.set_ylim(0, max(r["denial_rate"] for r in rows) * 100 * 1.3 + 1)
     ax.set_title("Denial rate by plan type (synthetic)", fontsize=11)
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return True
+
+
+def plot_size_bands(size_bands: list[dict], out_path) -> bool:
+    """Grouped bars: share of claims vs share of paid dollars per billed-amount
+    band. Makes the concentration visible (many small claims, few large ones
+    carrying most of the spend)."""
+    if not size_bands or not any(b["claims"] for b in size_bands):
+        return False
+    # escape $ or matplotlib treats the labels as mathtext
+    names = [b["band"].replace("$", "\\$") for b in size_bands]
+    x = list(range(len(names)))
+    width = 0.38
+    fig, ax = plt.subplots(figsize=(8, 3.8))
+    ax.bar([i - width / 2 for i in x], [b["claim_share"] * 100 for b in size_bands],
+           width, label="% of claims", color="#1c7ed6")
+    ax.bar([i + width / 2 for i in x], [b["paid_share"] * 100 for b in size_bands],
+           width, label="% of paid $", color="#e8590c")
+    ax.set_xticks(x)
+    ax.set_xticklabels(names, fontsize=9)
+    ax.set_ylabel("share (%)")
+    ax.set_title("Claim count vs paid dollars by billed-amount band (synthetic claims)")
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(out_path, dpi=120)
