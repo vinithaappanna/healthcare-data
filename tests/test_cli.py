@@ -95,3 +95,10 @@ def test_whole_store_commands_and_reconcile_exit_code(tmp_path, capsys):
     with path.open("w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=FIELDNAMES); w.writeheader(); w.writerows(rows_in)
     assert cli.main(["reconcile"], store=path) == 2
+
+
+def test_summary_command(tmp_path, capsys):
+    assert cli.main(["summary"], store=store(tmp_path)) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["claims"] == len(Pipeline(store_path := None or (tmp_path / "c.csv")).load_store())
+    assert out["denial_rate"] > 0 and "generated" in out["origins"]

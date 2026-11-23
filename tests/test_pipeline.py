@@ -638,3 +638,19 @@ def test_diagnosis_section_renders():
         {"code": "I10", "description": "Essential hypertension", "claims": 2, "avg_billed": 200.0,
          "paid": 200.0, "denial_rate": 0.0}])
     assert "| I10 | Essential hypertension | 2 | $200 | $200 | 0.0% |" in md
+
+
+def test_store_summary_totals_and_empty(tmp_path):
+    pipe = Pipeline(tmp_path / "ss.csv")
+    assert pipe.store_summary()["claims"] == 0 and pipe.store_summary()["first_month"] is None
+    pipe.ingest([
+        make_valid("CLM-1", member_id="M1", service_date="2026-09-15", billed_amount=100,
+                   allowed_amount=80, paid_amount=60),
+        make_valid("CLM-2", member_id="M2", service_date="2026-11-02", billed_amount=200,
+                   allowed_amount=0, paid_amount=0, status="denied", denial_reason="not covered"),
+    ])
+    out = pipe.store_summary()
+    assert out["claims"] == 2 and out["members"] == 2 and out["months"] == 2
+    assert out["first_month"] == "2026-09" and out["last_month"] == "2026-11"
+    assert out["billed"] == 300.0 and out["paid"] == 60.0 and out["denial_rate"] == 0.5
+    assert out["origins"] == {"generated": 2}

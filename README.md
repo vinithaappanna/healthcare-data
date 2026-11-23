@@ -38,7 +38,7 @@ python examples/quick_demo.py       # 500 synthetic claims through the pipeline
 python scripts/daily_update.py      # full update round with quality gates
 python scripts/query.py member MBR-0076   # claim / member / plan / procedure / diagnosis lookups
 python scripts/query.py reconcile         # do all views account for the store? (exit 2 if not)
-python scripts/query.py origins           # claims per data_origin; also: bands
+python scripts/query.py origins           # claims per data_origin; also: bands, summary
 python -m pytest                    # offline test suite
 ```
 

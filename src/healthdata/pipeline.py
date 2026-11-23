@@ -252,6 +252,25 @@ class Pipeline:
                 "denial_rate": round(a["denied"] / a["claims"], 4)} for code, a in agg.items()]
         return sorted(out, key=lambda r: (-r["paid"], r["code"]))[:top]
 
+    def store_summary(self) -> dict:
+        """One-line facts about the whole store: claims, distinct members,
+        months covered (by service date), billed/paid totals, denial rate and
+        the data_origin split. Empty store returns zeros with an empty origin
+        map."""
+        store = self.load_store()
+        n = len(store)
+        denied = sum(1 for r in store.values() if r["status"] == "denied")
+        months = sorted({(r["service_date"] or "")[:7] for r in store.values()} - {""})
+        return {"claims": n,
+                "members": len({r["member_id"] for r in store.values()}),
+                "months": len(months),
+                "first_month": months[0] if months else None,
+                "last_month": months[-1] if months else None,
+                "billed": round(sum(float(r["billed_amount"] or 0) for r in store.values()), 2),
+                "paid": round(sum(float(r["paid_amount"] or 0) for r in store.values()), 2),
+                "denial_rate": round(denied / n, 4) if n else 0.0,
+                "origins": self.origin_counts()}
+
     def monthly_financials(self) -> list[dict]:
         """Billed/allowed/paid totals and denial rate per service month."""
         store = self.load_store()

@@ -77,10 +77,13 @@ def main(argv: list[str] | None = None, store: Path | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name in ("claim", "member", "plan", "procedure", "diagnosis"):
         sub.add_parser(name).add_argument("key")
-    for name in ("reconcile", "origins", "bands"):
+    for name in ("reconcile", "origins", "bands", "summary"):
         sub.add_parser(name)        # whole-store views: no key
     args = parser.parse_args(argv)
     pipe = Pipeline(store or Path(__file__).resolve().parents[2] / "data" / "claims.csv")
+    if args.cmd == "summary":
+        print(json.dumps(pipe.store_summary(), indent=2))
+        return 0
     if args.cmd in ("reconcile", "origins", "bands"):
         if args.cmd == "reconcile":
             rows = pipe.reconcile()
