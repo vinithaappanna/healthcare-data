@@ -252,6 +252,24 @@ class Pipeline:
                 "denial_rate": round(a["denied"] / a["claims"], 4)} for code, a in agg.items()]
         return sorted(out, key=lambda r: (-r["paid"], r["code"]))[:top]
 
+    def diagnosis_procedure_pairs(self, min_claims: int = 10, top: int = 6) -> list[dict]:
+        """Most frequent diagnosis/procedure pairs with at least min_claims
+        claims: claim count, denial rate and total paid. Pairs come from
+        independent synthetic draws, so this shows generator mix, not clinical
+        practice. Illustrative codes, synthetic data."""
+        agg: dict[tuple[str, str], dict] = {}
+        for r in self.load_store().values():
+            key = (r["diagnosis_code"] or "Unknown", r["procedure_code"] or "Unknown")
+            a = agg.setdefault(key, {"claims": 0, "denied": 0, "paid": 0.0})
+            a["claims"] += 1
+            a["denied"] += r["status"] == "denied"
+            a["paid"] += float(r["paid_amount"] or 0)
+        out = [{"diagnosis": d, "procedure": p, "claims": a["claims"],
+                "denial_rate": round(a["denied"] / a["claims"], 4),
+                "paid": round(a["paid"], 2)}
+               for (d, p), a in agg.items() if a["claims"] >= min_claims]
+        return sorted(out, key=lambda r: (-r["claims"], r["diagnosis"], r["procedure"]))[:top]
+
     def store_summary(self) -> dict:
         """One-line facts about the whole store: claims, distinct members,
         months covered (by service date), billed/paid totals, denial rate and

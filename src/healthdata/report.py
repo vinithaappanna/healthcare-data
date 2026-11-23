@@ -34,7 +34,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     dup_leakage: dict | None = None,
                     member_dist: list[dict] | None = None,
                     statuses: list[dict] | None = None,
-                    diagnoses: list[dict] | None = None) -> str:
+                    diagnoses: list[dict] | None = None,
+                    dx_proc_pairs: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -67,6 +68,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for d in diagnoses:
             lines.append(f"| {d['code']} | {d['description']} | {d['claims']} | "
                          f"${d['avg_billed']:,.0f} | ${d['paid']:,.0f} | {d['denial_rate']:.1%} |")
+    if dx_proc_pairs:
+        lines += ["", "## Most common diagnosis/procedure pairs", "",
+                  "Pairs come from independent synthetic draws: this shows the generator's mix, "
+                  "not clinical practice. Illustrative codes.", "",
+                  "| Diagnosis | Procedure | Claims | Denial rate | Paid |",
+                  "| --- | --- | ---: | ---: | ---: |"]
+        for d in dx_proc_pairs:
+            lines.append(f"| {d['diagnosis']} | {d['procedure']} | {d['claims']} | "
+                         f"{d['denial_rate']:.1%} | ${d['paid']:,.0f} |")
     if statuses:
         lines += ["", "## Claim status breakdown", "",
                   "| Status | Claims | Share | Billed | Paid |", "| --- | ---: | ---: | ---: | ---: |"]

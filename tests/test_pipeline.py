@@ -654,3 +654,25 @@ def test_store_summary_totals_and_empty(tmp_path):
     assert out["first_month"] == "2026-09" and out["last_month"] == "2026-11"
     assert out["billed"] == 300.0 and out["paid"] == 60.0 and out["denial_rate"] == 0.5
     assert out["origins"] == {"generated": 2}
+
+
+def test_diagnosis_procedure_pairs_threshold_order_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "pairs.csv")
+    rows = [make_valid(f"A-{i}", diagnosis_code="I10", procedure_code="99213",
+                       billed_amount=100, allowed_amount=80, paid_amount=50) for i in range(3)]
+    rows += [make_valid("A-9", diagnosis_code="I10", procedure_code="99213", billed_amount=100,
+                        allowed_amount=0, paid_amount=0, status="denied", denial_reason="not covered")]
+    rows += [make_valid(f"B-{i}", diagnosis_code="R51", procedure_code="99214",
+                        billed_amount=100, allowed_amount=80, paid_amount=40) for i in range(2)]
+    rows += [make_valid("C-1", diagnosis_code="M54.5", procedure_code="99213",
+                        billed_amount=100, allowed_amount=80, paid_amount=40)]
+    pipe.ingest(rows)
+    out = pipe.diagnosis_procedure_pairs(min_claims=2)
+    assert out == [
+        {"diagnosis": "I10", "procedure": "99213", "claims": 4, "denial_rate": 0.25, "paid": 150.0},
+        {"diagnosis": "R51", "procedure": "99214", "claims": 2, "denial_rate": 0.0, "paid": 80.0}]
+    assert pipe.diagnosis_procedure_pairs(min_claims=5) == []
+    assert Pipeline(tmp_path / "e.csv").diagnosis_procedure_pairs() == []
+    md = report.render_markdown([], [], [], 0, dx_proc_pairs=out)
+    assert "| I10 | 99213 | 4 | 25.0% | $150 |" in md
