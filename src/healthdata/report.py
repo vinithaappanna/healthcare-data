@@ -35,7 +35,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     member_dist: list[dict] | None = None,
                     statuses: list[dict] | None = None,
                     diagnoses: list[dict] | None = None,
-                    dx_proc_pairs: list[dict] | None = None) -> str:
+                    dx_proc_pairs: list[dict] | None = None,
+                    reasons_by_month: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -83,6 +84,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for st in statuses:
             lines.append(f"| {st['status']} | {st['claims']} | {st['share']:.1%} | "
                          f"${st['billed']:,.0f} | ${st['paid']:,.0f} |")
+    if reasons_by_month:
+        lines += ["", "## Leading denial reason by month", "",
+                  "Months with fewer than 10 denials are omitted. Most synthetic claims fall in the latest service month, so older months are sparse. Synthetic data.", "",
+                  "| Month | Denials | Leading reason | Share of denials |",
+                  "| --- | ---: | --- | ---: |"]
+        for m in reasons_by_month:
+            lines.append(f"| {m['month']} | {m['denials']} | {m['top_reason']} | {m['top_share']:.1%} |")
     lines += ["", "## Denial reasons", ""]
     for reason, count in denial_reasons:
         lines.append(f"- {reason} ({count})")

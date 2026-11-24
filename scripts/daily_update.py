@@ -70,6 +70,7 @@ def main(root: Path | None = None) -> int:
                                discounts=pipe.procedure_discounts(),
                                diagnoses=pipe.diagnosis_summary(),
                                dx_proc_pairs=pipe.diagnosis_procedure_pairs(),
+                               reasons_by_month=pipe.denial_reasons_by_month(),
                                statuses=pipe.status_breakdown(),
                                member_dist=pipe.member_claim_distribution(),
                                dup_leakage=pipe.duplicate_leakage(),

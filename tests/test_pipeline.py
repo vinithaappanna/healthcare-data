@@ -676,3 +676,24 @@ def test_diagnosis_procedure_pairs_threshold_order_and_render(tmp_path):
     assert Pipeline(tmp_path / "e.csv").diagnosis_procedure_pairs() == []
     md = report.render_markdown([], [], [], 0, dx_proc_pairs=out)
     assert "| I10 | 99213 | 4 | 25.0% | $150 |" in md
+
+
+def test_denial_reasons_by_month_threshold_ties_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "drm.csv")
+    def den(i, month, reason):
+        return make_valid(f"D-{month}-{i}", service_date=f"{month}-10", billed_amount=100,
+                          allowed_amount=0, paid_amount=0, status="denied", denial_reason=reason)
+    rows = [den(i, "2026-10", "not covered") for i in range(3)]
+    rows += [den(i + 10, "2026-10", "prior auth missing") for i in range(1)]
+    rows += [den(i, "2026-11", "not covered") for i in range(2)]
+    rows += [den(i + 5, "2026-11", "prior auth missing") for i in range(2)]   # tie: name order wins
+    rows += [den(0, "2026-09", "not covered")]                                # too few denials
+    pipe.ingest(rows)
+    out = pipe.denial_reasons_by_month(min_denials=4)
+    assert out == [
+        {"month": "2026-10", "denials": 4, "top_reason": "not covered", "top_share": 0.75},
+        {"month": "2026-11", "denials": 4, "top_reason": "not covered", "top_share": 0.5}]
+    assert pipe.denial_reasons_by_month(min_denials=5) == []
+    assert Pipeline(tmp_path / "e.csv").denial_reasons_by_month() == []
+    assert "| 2026-10 | 4 | not covered | 75.0% |" in report.render_markdown([], [], [], 0, reasons_by_month=out)

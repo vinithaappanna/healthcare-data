@@ -323,6 +323,26 @@ class Pipeline:
                          if row["status"] == "denied" and row["denial_reason"])
         return counts.most_common()
 
+    def denial_reasons_by_month(self, min_denials: int = 10) -> list[dict]:
+        """Per service month: denied claims and the leading denial reason with
+        its share of that month's denials. Months with fewer than min_denials
+        denials are omitted (shares on tiny counts mislead). Ties break by
+        reason name. Synthetic, illustrative."""
+        months: dict[str, Counter] = {}
+        for r in self.load_store().values():
+            if r["status"] == "denied" and r["denial_reason"]:
+                months.setdefault(r["service_date"][:7], Counter())[r["denial_reason"]] += 1
+        out = []
+        for month in sorted(months):
+            c = months[month]
+            total = sum(c.values())
+            if total < min_denials:
+                continue
+            reason, n = sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+            out.append({"month": month, "denials": total, "top_reason": reason,
+                        "top_share": round(n / total, 4)})
+        return out
+
     def plan_mix(self) -> list[tuple[str, int]]:
         store = self.load_store()
         counts = Counter(row["plan_type"] for row in store.values() if row["plan_type"])
