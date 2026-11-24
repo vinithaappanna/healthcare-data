@@ -71,6 +71,7 @@ def main(root: Path | None = None) -> int:
                                discounts=pipe.procedure_discounts(),
                                diagnoses=pipe.diagnosis_summary(),
                                month_dist=pipe.month_distribution(),
+                               age_denials=pipe.denials_by_age_band(),
                                dx_proc_pairs=pipe.diagnosis_procedure_pairs(),
                                reasons_by_month=pipe.denial_reasons_by_month(),
                                statuses=pipe.status_breakdown(),

@@ -772,3 +772,23 @@ def test_month_distribution_shares_largest_and_render(tmp_path):
                    {"month": "2026-10", "claims": 3, "share": 0.75, "largest": True}]
     md = report.render_markdown([], [], [], 0, month_dist=out)
     assert "| 2026-10 (largest) | 3 | 75.0% |" in md and "| 2026-09 | 1 | 25.0% |" in md
+
+
+def test_denials_by_age_band_rates_order_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "ab.csv")
+    assert pipe.denials_by_age_band() == []
+    def row(cid, band, **kw):
+        return make_valid(cid, member_id=f"MBR-{cid[-1]}00", age_band=band, **kw)
+    pipe.ingest([
+        row("A-1", "18-39"), row("A-2", "18-39", billed_amount=100, allowed_amount=0, paid_amount=0,
+                                  status="denied", denial_reason="not covered"),
+        row("B-3", "0-17"),
+    ])
+    out = pipe.denials_by_age_band()
+    assert [o["age_band"] for o in out] == ["0-17", "18-39"]        # AGE_BANDS order
+    assert out[1] == {"age_band": "18-39", "claims": 2, "denied": 1, "denial_rate": 0.5,
+                      "top_reason": "not covered"}
+    assert out[0]["top_reason"] == "" and out[0]["denial_rate"] == 0.0
+    md = report.render_markdown([], [], [], 0, age_denials=out)
+    assert "| 18-39 | 2 | 1 | 50.0% | not covered |" in md and "| 0-17 | 1 | 0 | 0.0% | - |" in md

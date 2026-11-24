@@ -42,7 +42,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     diagnoses: list[dict] | None = None,
                     dx_proc_pairs: list[dict] | None = None,
                     reasons_by_month: list[dict] | None = None,
-                    month_dist: list[dict] | None = None) -> str:
+                    month_dist: list[dict] | None = None,
+                    age_denials: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -270,6 +271,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Plan | Denials | Top reason | Count |", "| --- | ---: | --- | ---: |"]
         for plan, reasons in reasons_by_plan.items():
             lines.append(f"| {plan} | {sum(c for _, c in reasons)} | {reasons[0][0]} | {reasons[0][1]} |")
+    if age_denials:
+        lines += ["", "## Denials by age band", "",
+                  "Age band is a synthetic per-member label with no clinical or benefit realism; "
+                  "differences come from the generator's random draws.", "",
+                  "| Age band | Claims | Denied | Denial rate | Top reason |",
+                  "| --- | ---: | ---: | ---: | --- |"]
+        for a in age_denials:
+            lines.append(f"| {a['age_band']} | {a['claims']} | {a['denied']} | "
+                         f"{a['denial_rate']:.1%} | {a['top_reason'] or '-'} |")
     if trend and len(trend) > 1:
         def fmt(v, suffix=""):
             return "-" if v is None else f"{v:+.1%}" if suffix == "%" else f"{v:+.2f} pp"

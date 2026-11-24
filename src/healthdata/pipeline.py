@@ -696,6 +696,30 @@ class Pipeline:
         return {plan: sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))
                 for plan, c in sorted(by_plan.items())}
 
+    def denials_by_age_band(self) -> list[dict]:
+        """Per age band (in AGE_BANDS order, unknown bands last): claims,
+        denied claims, denial rate and the leading denial reason. Age band is a
+        synthetic label per member with no clinical or benefit realism, so
+        differences here come from the generator's random draws."""
+        from .claims import AGE_BANDS
+
+        agg: dict[str, dict] = {}
+        for r in self.load_store().values():
+            a = agg.setdefault(r["age_band"] or "Unknown", {"claims": 0, "denied": 0, "reasons": Counter()})
+            a["claims"] += 1
+            if r["status"] == "denied":
+                a["denied"] += 1
+                if r["denial_reason"]:
+                    a["reasons"][r["denial_reason"]] += 1
+        order = {b: i for i, b in enumerate(AGE_BANDS)}
+        out = []
+        for band, a in sorted(agg.items(), key=lambda kv: (order.get(kv[0], 99), kv[0])):
+            top = sorted(a["reasons"].items(), key=lambda kv: (-kv[1], kv[0]))
+            out.append({"age_band": band, "claims": a["claims"], "denied": a["denied"],
+                        "denial_rate": round(a["denied"] / a["claims"], 4),
+                        "top_reason": top[0][0] if top else ""})
+        return out
+
     def potential_duplicates(self) -> list[dict]:
         """Groups of claims with the same member, procedure and service date.
 
