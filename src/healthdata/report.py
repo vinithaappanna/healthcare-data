@@ -43,7 +43,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     dx_proc_pairs: list[dict] | None = None,
                     reasons_by_month: list[dict] | None = None,
                     month_dist: list[dict] | None = None,
-                    age_denials: list[dict] | None = None) -> str:
+                    age_denials: list[dict] | None = None,
+                    member_denials: dict | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -271,6 +272,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Plan | Denials | Top reason | Count |", "| --- | ---: | --- | ---: |"]
         for plan, reasons in reasons_by_plan.items():
             lines.append(f"| {plan} | {sum(c for _, c in reasons)} | {reasons[0][0]} | {reasons[0][1]} |")
+    if member_denials and member_denials["members"]:
+        lines += ["", "## Member denial experience", "",
+                  f"Members with {member_denials['min_claims']}+ claims ({member_denials['members']}). "
+                  "Denials are random draws in the generator, so this is a profile of the synthetic data, not member behavior.", "",
+                  "| Denials | Members | Share |", "| --- | ---: | ---: |"]
+        for b in member_denials["buckets"]:
+            lines.append(f"| {b['bucket']} | {b['members']} | {b['share']:.1%} |")
     if age_denials:
         lines += ["", "## Denials by age band", "",
                   "Age band is a synthetic per-member label with no clinical or benefit realism; "

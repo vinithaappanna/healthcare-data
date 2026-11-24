@@ -72,6 +72,7 @@ def main(root: Path | None = None) -> int:
                                diagnoses=pipe.diagnosis_summary(),
                                month_dist=pipe.month_distribution(),
                                age_denials=pipe.denials_by_age_band(),
+                               member_denials=pipe.member_denial_experience(),
                                dx_proc_pairs=pipe.diagnosis_procedure_pairs(),
                                reasons_by_month=pipe.denial_reasons_by_month(),
                                statuses=pipe.status_breakdown(),

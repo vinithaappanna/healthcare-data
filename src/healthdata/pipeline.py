@@ -720,6 +720,24 @@ class Pipeline:
                         "top_reason": top[0][0] if top else ""})
         return out
 
+    def member_denial_experience(self, min_claims: int = 3) -> dict:
+        """Among members with at least min_claims claims: how many had no
+        denial, one, or two or more, with shares. Members with fewer claims
+        are excluded (one claim cannot show a pattern). Synthetic; denials
+        are random draws, so this is a generator profile, not member behavior."""
+        per: dict[str, list] = {}
+        for r in self.load_store().values():
+            c = per.setdefault(r["member_id"], [0, 0])
+            c[0] += 1
+            c[1] += r["status"] == "denied"
+        elig = [d for n, d in per.values() if n >= min_claims]
+        total = len(elig)
+        buckets = {"no denials": sum(d == 0 for d in elig), "1 denial": sum(d == 1 for d in elig),
+                   "2+ denials": sum(d >= 2 for d in elig)}
+        return {"members": total, "min_claims": min_claims,
+                "buckets": [{"bucket": k, "members": v, "share": round(v / total, 4) if total else 0.0}
+                            for k, v in buckets.items()]}
+
     def potential_duplicates(self) -> list[dict]:
         """Groups of claims with the same member, procedure and service date.
 

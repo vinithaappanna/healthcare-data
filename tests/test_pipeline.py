@@ -792,3 +792,22 @@ def test_denials_by_age_band_rates_order_and_render(tmp_path):
     assert out[0]["top_reason"] == "" and out[0]["denial_rate"] == 0.0
     md = report.render_markdown([], [], [], 0, age_denials=out)
     assert "| 18-39 | 2 | 1 | 50.0% | not covered |" in md and "| 0-17 | 1 | 0 | 0.0% | - |" in md
+
+
+def test_member_denial_experience_buckets_and_floor(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "mde.csv")
+    assert pipe.member_denial_experience()["members"] == 0
+    rows = []
+    def add(m, i, denied):
+        kw = dict(status="denied", denial_reason="not covered", allowed_amount=0, paid_amount=0) if denied else {}
+        rows.append(make_valid(f"{m}-{i}", member_id=m, **kw))
+    for i in range(3): add("MBR-0001", i, False)            # none
+    for i in range(3): add("MBR-0002", i, i == 0)           # one
+    for i in range(4): add("MBR-0003", i, i < 2)            # two
+    add("MBR-0004", 0, True)                                # below floor
+    pipe.ingest(rows)
+    out = pipe.member_denial_experience()
+    assert out["members"] == 3 and [b["members"] for b in out["buckets"]] == [1, 1, 1]
+    assert out["buckets"][0]["share"] == 0.3333
+    assert "| 2+ denials | 1 | 33.3% |" in report.render_markdown([], [], [], 0, member_denials=out)
