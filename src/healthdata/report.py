@@ -9,6 +9,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
+MONTH_NOTE = ("Monthly counts here are shaped by the synthetic generator (daily batches spread service "
+              "dates over the trailing 90 days; months before that are a sparse backfill), not evidence "
+              "of utilization trends.")
+
+
 def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     plan_mix: list[tuple[str, int]], total_claims: int,
                     generated_at: dt.datetime | None = None,
@@ -52,6 +57,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         f"denied {int(denied)} overall.",
         "",
         "## Monthly financials",
+        "",
+        MONTH_NOTE,
         "",
         "| Month | Claims | Billed | Allowed | Paid | Denial rate |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
@@ -117,7 +124,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
     if outliers is not None:
         lines += ["", "## Denial-rate outliers (plan x month)", "",
                   "Cells whose denial rate is at least 2 standard errors from the overall rate "
-                  "(cells under 20 claims skipped). A statistical screen on synthetic data, not a finding."]
+                  "(cells under 20 claims skipped). A statistical screen on synthetic data, not a finding. " + MONTH_NOTE]
         if outliers:
             lines += ["", "| Plan | Month | Claims | Denial rate | Overall | z |",
                       "| --- | --- | ---: | ---: | ---: | ---: |"]
@@ -179,7 +186,9 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "no age-implausible procedure or diagnosis, and \"duplicate claim\" denials without an earlier matching claim given another reason; a `+2026-11-22` suffix marks the second repair); `generated` rows were produced under the "
                   "current rules. Tagged counts are conservative, not an exact count of changed rows: the whole "
                   "B05 batch is tagged even if a few of its rows already matched. Plan and age band are "
-                  "labels only, with no plan-specific benefits or clinical realism. All of it is synthetic.", "",
+                  "labels only, with no plan-specific benefits or clinical realism. A `+2026-11-23` suffix marks "
+                  "service dates redistributed over the trailing 90 days (only service_date moved; see "
+                  "docs/service-date-redistribution.md). All of it is synthetic.", "",
                   "| Origin | Claims |", "| --- | ---: |"]
         for k, n in origins.items():
             lines.append(f"| {k} | {n} |")
@@ -254,7 +263,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
     if trend and len(trend) > 1:
         def fmt(v, suffix=""):
             return "-" if v is None else f"{v:+.1%}" if suffix == "%" else f"{v:+.2f} pp"
-        lines += ["", "## Month-over-month trend (last 6 complete months)", "",
+        lines += ["", "## Month-over-month trend (last 6 complete months)", "", MONTH_NOTE, "",
                   "| Month | Claims | Paid | Denial rate |", "| --- | ---: | ---: | ---: |"]
         for t in trend[-6:]:
             lines.append(f"| {t['month']} | {fmt(t['claims_change'], '%')} | "
@@ -295,7 +304,7 @@ def plot_monthly_financials(monthly: list[dict], out_path) -> bool:
     fig, ax = plt.subplots(figsize=(9, 4))
     ax.plot(months, billed, marker="o", markersize=3, label="billed")
     ax.plot(months, paid, marker="o", markersize=3, label="paid")
-    ax.set_title("Monthly billed vs paid amounts (synthetic claims)")
+    ax.set_title("Monthly billed vs paid (synthetic, generator-shaped:\nmonths before the 90-day spread are sparse backfill)", fontsize=10)
     ax.set_ylabel("USD")
     ax.legend()
     fig.autofmt_xdate()

@@ -51,6 +51,7 @@ DUPLICATE_CAUGHT = 0.7         # of those, share denied as "duplicate claim"; th
 # not generated for.
 AGE_RESTRICTED_PROCEDURES = {"27447": {"0-17"}}      # total knee replacement
 AGE_RESTRICTED_DIAGNOSES = {"Z00.00": {"0-17"}}      # general ADULT medical exam
+SERVICE_SPREAD_DAYS = 90      # daily batches spread service dates over this many trailing days
 ORIGIN_REGENERATED = "regenerated-2026-11-21"        # data_origin of repaired history
 
 
@@ -123,7 +124,7 @@ class ClaimGenerator:
         plan, band = member_profile(member_id)
         return {"member_id": member_id, "plan_type": plan, "age_band": band}
 
-    def claim(self, service_date: dt.date | None = None) -> dict:
+    def claim(self, service_date: dt.date | None = None, spread_days: int | None = None) -> dict:
         rng = self._rng
         self._claim_seq += 1
         member = self._member()
@@ -137,7 +138,11 @@ class ClaimGenerator:
         denial_reason = rng.choice(RANDOM_DENIAL_REASONS) if status == "denied" else ""
         allowed = round(billed * rng.uniform(0.6, 0.95), 2)
         paid = round(allowed * rng.uniform(0.7, 1.0), 2) if status != "denied" else 0.0
-        day = service_date or dt.date.today() - dt.timedelta(days=rng.randrange(0, 365))
+        if service_date and spread_days:
+            # service_date is the latest day; each claim lands 0..spread_days-1 days earlier
+            day = service_date - dt.timedelta(days=rng.randrange(spread_days))
+        else:
+            day = service_date or dt.date.today() - dt.timedelta(days=rng.randrange(0, 365))
         if self._batch:
             claim_id = f"{self._id_prefix}-B{self._batch:02d}-{self._claim_seq:06d}"
         else:
@@ -155,13 +160,14 @@ class ClaimGenerator:
             "denial_reason": denial_reason,
         }
 
-    def _repeat_of(self, original: dict, service_date: dt.date | None) -> dict:
+    def _repeat_of(self, original: dict, service_date: dt.date | None,
+                   spread_days: int | None = None) -> dict:
         """A claim that repeats `original` (same member, procedure, diagnosis,
         service date and billed amount) under a new claim id. Most are denied
         as "duplicate claim"; the rest are paid, which is what a leakage screen
         should find."""
         rng = self._rng
-        dup = self.claim(service_date)
+        dup = self.claim(service_date, spread_days)
         for key in ("member_id", "plan_type", "age_band", "service_date", "procedure_code",
                     "diagnosis_code", "billed_amount"):
             dup[key] = original[key]
@@ -173,14 +179,18 @@ class ClaimGenerator:
                        paid_amount=round(allowed * rng.uniform(0.7, 1.0), 2))
         return dup
 
-    def claims(self, n: int, service_date: dt.date | None = None) -> list[dict]:
+    def claims(self, n: int, service_date: dt.date | None = None,
+               spread_days: int | None = None) -> list[dict]:
+        """n claims. With service_date and spread_days, service dates spread
+        over the spread_days ending at service_date (repeats keep their
+        original's date); with service_date alone every claim gets that date."""
         out: list[dict] = []
         for _ in range(n):
             if out and self._rng.random() < DUPLICATE_RATE:
                 original = self._rng.choice(out)
-                out.append(self._repeat_of(original, service_date))
+                out.append(self._repeat_of(original, service_date, spread_days))
             else:
-                out.append(self.claim(service_date))
+                out.append(self.claim(service_date, spread_days))
         return out
 
 

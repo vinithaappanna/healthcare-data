@@ -697,3 +697,65 @@ def test_denial_reasons_by_month_threshold_ties_and_render(tmp_path):
     assert pipe.denial_reasons_by_month(min_denials=5) == []
     assert Pipeline(tmp_path / "e.csv").denial_reasons_by_month() == []
     assert "| 2026-10 | 4 | not covered | 75.0% |" in report.render_markdown([], [], [], 0, reasons_by_month=out)
+
+
+def test_generator_spreads_dates_and_keeps_repeats_aligned():
+    import datetime as dt
+    from healthdata.claims import ClaimGenerator
+    anchor = dt.date(2026, 11, 23)
+    out = ClaimGenerator(seed=7).claims(300, service_date=anchor, spread_days=90)
+    days = {dt.date.fromisoformat(c["service_date"]) for c in out}
+    assert max(days) <= anchor and min(days) > anchor - dt.timedelta(days=90) and len(days) > 40
+    # without spread every claim keeps the single date
+    assert {c["service_date"] for c in ClaimGenerator(seed=7).claims(20, service_date=anchor)} == {"2026-11-23"}
+
+
+def test_redistribution_moves_legacy_batches_only_tags_and_is_idempotent(tmp_path):
+    import csv
+    from healthdata.pipeline import FIELDNAMES, Pipeline
+    pipe = Pipeline(tmp_path / "rd.csv")
+    legacy = [make_valid(f"CLM-61123-B01-{i:06d}", member_id=f"MBR-{i:04d}", service_date="2026-11-23",
+                         procedure_code="99213") for i in range(1, 41)]
+    spread = [make_valid("CLM-61124-B01-000001", service_date="2026-10-01"),
+              make_valid("CLM-61124-B01-000002", service_date="2026-11-20")]   # already varied: untouched
+    pipe.ingest(legacy + spread)
+    # two legacy claims sharing member/procedure/date must keep sharing a date
+    pipe.ingest([make_valid("CLM-61123-B01-000100", member_id="MBR-0001", service_date="2026-11-23",
+                            procedure_code="99213")])
+    import copy
+    before = pipe.load_store()
+    after = copy.deepcopy(before)
+    moved = Pipeline._redistribute_service_dates(after)      # the step alone: no member repairs mixed in
+    assert moved > 0 and Pipeline._redistribute_service_dates(after) == 0   # idempotent
+    changed = [k for k in after if after[k]["service_date"] != before[k]["service_date"]]
+    assert changed and all(k.startswith("CLM-61123-B01") for k in changed)
+    assert all(after[k]["data_origin"].endswith("2026-11-23") for k in changed)
+    assert all(after[k]["service_date"] <= "2026-11-23" and after[k]["service_date"] > "2026-08-24" for k in after if k.startswith("CLM-61123"))
+    for k in changed:                       # only service_date and data_origin differ
+        diff = {f for f in FIELDNAMES if after[k].get(f) != before[k].get(f)}
+        assert diff <= {"service_date", "data_origin"}
+    assert after["CLM-61123-B01-000001"]["service_date"] == after["CLM-61123-B01-000100"]["service_date"]
+    assert after["CLM-61124-B01-000001"] == before["CLM-61124-B01-000001"]
+    pipe.harmonize_members()
+    assert pipe.harmonize_members() == 0     # the full repair pass is idempotent too
+
+
+def test_origin_tag_composes_without_duplicates():
+    from healthdata.pipeline import Pipeline
+    row = {"data_origin": "generated"}
+    Pipeline._add_origin_tag(row, "2026-11-23")
+    assert row["data_origin"] == "regenerated-2026-11-23"
+    row = {"data_origin": "regenerated-2026-11-21+2026-11-22"}
+    Pipeline._add_origin_tag(row, "2026-11-23"); Pipeline._add_origin_tag(row, "2026-11-23")
+    assert row["data_origin"] == "regenerated-2026-11-21+2026-11-22+2026-11-23"
+
+
+def test_month_concentration_gate_and_monthly_note():
+    from healthdata import quality, report
+    skewed = [{"claim_id": f"C{i}", "service_date": "2026-11-10"} for i in range(300)]
+    assert any("2026-11" in i for i in quality.check_month_concentration(skewed))
+    spread = [{"claim_id": f"C{i}", "service_date": f"2026-{(i % 4) + 8:02d}-10"} for i in range(300)]
+    assert quality.check_month_concentration(spread) == []
+    assert quality.check_month_concentration(skewed[:50]) == []        # too small to judge
+    md = report.render_markdown([], [], [], 0)
+    assert "not evidence of utilization trends" in md

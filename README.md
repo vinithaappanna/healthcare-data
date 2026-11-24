@@ -78,3 +78,10 @@ The procedure/diagnosis codes, plan types, denial reasons and payment rules are
 illustrative teaching examples - they are not authoritative coding, coverage
 or adjudication logic, and nothing here is medical, financial or insurance
 advice.
+
+## Service dates
+
+Daily batches spread service dates over the trailing 90 days, and older single-date batches were
+redistributed once (provenance tag `+2026-11-23`, a quality gate caps any month at 50% of claims).
+Monthly figures are generator-shaped, not evidence of utilization trends. Details and before/after
+metrics: [docs/service-date-redistribution.md](docs/service-date-redistribution.md).

@@ -132,6 +132,21 @@ def check_duplicate_denials_supported(rows: list[dict]) -> list[str]:
             and first[(r.get("member_id"), r.get("procedure_code"), r.get("service_date"))] == r["claim_id"]]
 
 
+def check_month_concentration(rows: list[dict], max_share: float = 0.5, min_rows: int = 200) -> list[str]:
+    """No single service month may hold more than max_share of the claims
+    (stores under min_rows are skipped). A heavily skewed month distribution
+    means the generator is stamping claims with one date, which makes every
+    monthly comparison reflect the generator, not utilization."""
+    if len(rows) < min_rows:
+        return []
+    from collections import Counter
+
+    months = Counter((r.get("service_date") or "")[:7] for r in rows)
+    month, n = months.most_common(1)[0]
+    share = n / len(rows)
+    return [f"service month {month} holds {share:.0%} of claims (limit {max_share:.0%})"] if share > max_share else []
+
+
 CHECKS = [
     ("amount consistency", check_amount_consistency),
     ("denial reasons", check_denial_reasons),
@@ -142,6 +157,7 @@ CHECKS = [
     ("member consistency", check_member_consistency),
     ("age plausibility", check_age_plausibility),
     ("duplicate denials supported", check_duplicate_denials_supported),
+    ("service month concentration", check_month_concentration),
 ]
 
 

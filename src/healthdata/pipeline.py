@@ -36,6 +36,9 @@ def validate(claim: dict) -> list[str]:
     return problems
 
 
+REDATE_TAG = "2026-11-23"       # data_origin suffix for rows whose service_date was redistributed
+
+
 class Pipeline:
     """Append claims to a CSV store and rebuild aggregates."""
 
@@ -95,6 +98,7 @@ class Pipeline:
                 row["data_origin"] = ORIGIN_REGENERATED
                 changed += 1
         changed += self._repair_unsupported_duplicate_denials(store)
+        changed += self._redistribute_service_dates(store)
         if changed:
             with self.store_path.open("w", newline="", encoding="utf-8") as fh:
                 writer = csv.DictWriter(fh, fieldnames=FIELDNAMES)
@@ -129,6 +133,58 @@ class Pipeline:
                                     f"{prev}+2026-11-22" if prev.startswith("regenerated") else "regenerated-2026-11-22")
                 n += 1
         return n
+
+    @staticmethod
+    def _add_origin_tag(row: dict, tag: str) -> None:
+        """Add a repair date tag to data_origin, keeping earlier provenance:
+        generated -> regenerated-TAG, regenerated-A -> regenerated-A+TAG.
+        A tag already present is not added twice."""
+        prev = row.get("data_origin") or ""
+        if prev.startswith("regenerated"):
+            if tag not in prev.split("-", 1)[1].split("+"):
+                row["data_origin"] = f"{prev}+{tag}"
+        else:
+            row["data_origin"] = f"regenerated-{tag}"
+
+    @staticmethod
+    def _redistribute_service_dates(store: dict, spread_days: int | None = None) -> int:
+        """Older daily batches stamped every claim with the batch day, so the
+        store was concentrated in the latest month. A batch is "legacy" when
+        every one of its rows (2+) carries the single service date the claim-id
+        day prefix names. Each such claim moves 0..spread_days-1 days earlier by
+        a hash of (member, procedure, date), so claims sharing those three
+        (repeats included) keep sharing a date and duplicate-denial support is
+        unchanged. Only service_date moves (amounts, status, reasons, members stay); moved rows
+        are tagged REDATE_TAG in data_origin. Idempotent: a redistributed batch
+        no longer has one date. Returns rows moved."""
+        import datetime as dt
+        import hashlib
+        from .claims import SERVICE_SPREAD_DAYS
+
+        spread = spread_days or SERVICE_SPREAD_DAYS
+        groups: dict[str, list[dict]] = {}
+        for r in store.values():
+            if "-B" in r["claim_id"]:
+                groups.setdefault(r["claim_id"].rsplit("-", 1)[0], []).append(r)
+        moved = 0
+        for key, rows in groups.items():
+            dates = {r["service_date"] for r in rows}
+            if len(rows) < 2 or len(dates) != 1:
+                continue
+            day = dt.date.fromisoformat(next(iter(dates)))
+            prefix = key.split("-B")[0]                    # CLM-61123
+            if prefix != f"CLM-{int(day.strftime('%Y%m%d')) % 100000:05d}":
+                continue
+            for r in rows:
+                h = hashlib.sha256(
+                    f"{r['member_id']}|{r['procedure_code']}|{r['service_date']}|redate".encode()
+                ).digest()
+                offset = int.from_bytes(h[:4], "big") % spread
+                if offset:
+                    r["service_date"] = (day - dt.timedelta(days=offset)).isoformat()
+                    Pipeline._add_origin_tag(r, REDATE_TAG)
+                    moved += 1
+        return moved
 
     def origin_counts(self) -> dict[str, int]:
         """Claims per data_origin; blank legacy values count as generated."""

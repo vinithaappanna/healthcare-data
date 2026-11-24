@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from healthdata import report
-from healthdata.claims import ClaimGenerator, next_batch_index
+from healthdata.claims import SERVICE_SPREAD_DAYS, ClaimGenerator, next_batch_index
 from healthdata.pipeline import Pipeline
 from healthdata.quality import load_rows, run_all, run_checks
 
@@ -37,7 +37,8 @@ def main(root: Path | None = None) -> int:
     pipe = Pipeline(STORE)
     batch_no = next_batch_index(pipe.load_store().keys(), day_prefix)
     batch = ClaimGenerator(day_seed * 1000 + batch_no, batch=batch_no,
-                           id_prefix=day_prefix).claims(BATCH_SIZE, service_date=today)
+                           id_prefix=day_prefix).claims(BATCH_SIZE, service_date=today,
+                                                      spread_days=SERVICE_SPREAD_DAYS)
 
     stats = pipe.ingest(batch)
     fixed = pipe.harmonize_members()
