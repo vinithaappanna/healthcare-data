@@ -70,6 +70,7 @@ def main(root: Path | None = None) -> int:
                                concentration=pipe.paid_concentration(),
                                discounts=pipe.procedure_discounts(),
                                diagnoses=pipe.diagnosis_summary(),
+                               month_dist=pipe.month_distribution(),
                                dx_proc_pairs=pipe.diagnosis_procedure_pairs(),
                                reasons_by_month=pipe.denial_reasons_by_month(),
                                statuses=pipe.status_breakdown(),

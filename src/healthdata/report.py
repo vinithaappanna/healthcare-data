@@ -41,7 +41,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     statuses: list[dict] | None = None,
                     diagnoses: list[dict] | None = None,
                     dx_proc_pairs: list[dict] | None = None,
-                    reasons_by_month: list[dict] | None = None) -> str:
+                    reasons_by_month: list[dict] | None = None,
+                    month_dist: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -68,6 +69,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
             f"| {m['month']} | {m['claims']} | ${m['billed']:,.0f} | "
             f"${m['allowed']:,.0f} | ${m['paid']:,.0f} | {m['denial_rate']:.1%} |"
         )
+    if month_dist:
+        lines += ["", "## Service-date distribution", "",
+                  "Share of stored claims per service month. Generator-shaped: new batches spread dates over "
+                  "90 days and older single-date batches were redistributed, so months before the spread are thin "
+                  "backfill. A quality gate caps any month at 50%.", "",
+                  "| Month | Claims | Share |", "| --- | ---: | ---: |"]
+        for m in month_dist:
+            star = " (largest)" if m["largest"] else ""
+            lines.append(f"| {m['month']}{star} | {m['claims']} | {m['share']:.1%} |")
     if diagnoses:
         lines += ["", "## Top diagnoses by paid amount", "",
                   "Illustrative code list, not authoritative coding; synthetic data.", "",

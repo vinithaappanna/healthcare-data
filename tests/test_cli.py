@@ -102,3 +102,13 @@ def test_summary_command(tmp_path, capsys):
     out = json.loads(capsys.readouterr().out)
     assert out["claims"] == len(Pipeline(store_path := None or (tmp_path / "c.csv")).load_store())
     assert out["denial_rate"] > 0 and "generated" in out["origins"]
+
+
+def test_months_command_prints_distribution(tmp_path, capsys):
+    import json
+    from healthdata.cli import main
+    from healthdata.pipeline import Pipeline
+    store = tmp_path / "c.csv"
+    Pipeline(store).ingest([make_valid("A-1", service_date="2026-10-01")])
+    assert main(["months"], store=store) == 0
+    assert json.loads(capsys.readouterr().out)[0]["month"] == "2026-10"

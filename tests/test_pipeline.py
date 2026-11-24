@@ -759,3 +759,16 @@ def test_month_concentration_gate_and_monthly_note():
     assert quality.check_month_concentration(skewed[:50]) == []        # too small to judge
     md = report.render_markdown([], [], [], 0)
     assert "not evidence of utilization trends" in md
+
+
+def test_month_distribution_shares_largest_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "md.csv")
+    assert pipe.month_distribution() == []
+    pipe.ingest([make_valid("A-1", service_date="2026-09-01"), make_valid("A-2", service_date="2026-10-01"),
+                 make_valid("A-3", service_date="2026-10-02"), make_valid("A-4", service_date="2026-10-03")])
+    out = pipe.month_distribution()
+    assert out == [{"month": "2026-09", "claims": 1, "share": 0.25, "largest": False},
+                   {"month": "2026-10", "claims": 3, "share": 0.75, "largest": True}]
+    md = report.render_markdown([], [], [], 0, month_dist=out)
+    assert "| 2026-10 (largest) | 3 | 75.0% |" in md and "| 2026-09 | 1 | 25.0% |" in md

@@ -326,6 +326,18 @@ class Pipeline:
                for (d, p), a in agg.items() if a["claims"] >= min_claims]
         return sorted(out, key=lambda r: (-r["claims"], r["diagnosis"], r["procedure"]))[:top]
 
+    def month_distribution(self) -> list[dict]:
+        """Claims and share of the store per service month, oldest first, plus
+        whether the month is the largest. Shows how generator-shaped the
+        monthly views are (see docs/service-date-redistribution.md); the
+        service month concentration gate caps the largest share at 50%."""
+        counts = Counter((r["service_date"] or "")[:7] for r in self.load_store().values())
+        counts.pop("", None)
+        total = sum(counts.values())
+        biggest = max(counts.values()) if counts else 0
+        return [{"month": m, "claims": n, "share": round(n / total, 4), "largest": n == biggest}
+                for m, n in sorted(counts.items())]
+
     def store_summary(self) -> dict:
         """One-line facts about the whole store: claims, distinct members,
         months covered (by service date), billed/paid totals, denial rate and

@@ -1,8 +1,8 @@
 # Healthcare Data - claims pipeline report
 
-Generated 2026-11-24 00:43 UTC. All data is synthetic - no real member, patient or plan information.
+Generated 2026-11-24 05:40 UTC. All data is synthetic - no real member, patient or plan information.
 
-**5360 claims** in store. Billed $13,383,828, paid $7,665,003, denied 701 overall.
+**5480 claims** in store. Billed $13,777,409, paid $7,893,535, denied 715 overall.
 
 ## Monthly financials
 
@@ -19,10 +19,30 @@ Monthly counts here are shaped by the synthetic generator (daily batches spread 
 | 2026-05 | 43 | $161,609 | $121,321 | $113,180 | 11.6% |
 | 2026-06 | 46 | $186,994 | $150,110 | $122,054 | 15.2% |
 | 2026-07 | 47 | $107,464 | $88,764 | $71,460 | 8.5% |
-| 2026-08 | 562 | $1,487,927 | $1,142,634 | $835,217 | 12.1% |
-| 2026-09 | 1647 | $4,015,238 | $3,098,396 | $2,357,434 | 13.8% |
-| 2026-10 | 1668 | $3,896,739 | $2,965,856 | $2,205,240 | 13.9% |
-| 2026-11 | 1129 | $3,082,414 | $2,331,965 | $1,688,749 | 12.4% |
+| 2026-08 | 568 | $1,510,897 | $1,157,512 | $845,920 | 12.2% |
+| 2026-09 | 1684 | $4,225,822 | $3,248,306 | $2,478,555 | 13.7% |
+| 2026-10 | 1708 | $3,986,767 | $3,031,043 | $2,263,260 | 13.6% |
+| 2026-11 | 1166 | $3,152,413 | $2,381,353 | $1,727,437 | 12.7% |
+
+## Service-date distribution
+
+Share of stored claims per service month. Generator-shaped: new batches spread dates over 90 days and older single-date batches were redistributed, so months before the spread are thin backfill. A quality gate caps any month at 50%.
+
+| Month | Claims | Share |
+| --- | ---: | ---: |
+| 2025-11 | 18 | 0.3% |
+| 2025-12 | 44 | 0.8% |
+| 2026-01 | 31 | 0.6% |
+| 2026-02 | 32 | 0.6% |
+| 2026-03 | 45 | 0.8% |
+| 2026-04 | 48 | 0.9% |
+| 2026-05 | 43 | 0.8% |
+| 2026-06 | 46 | 0.8% |
+| 2026-07 | 47 | 0.9% |
+| 2026-08 | 568 | 10.4% |
+| 2026-09 | 1684 | 30.7% |
+| 2026-10 (largest) | 1708 | 31.2% |
+| 2026-11 | 1166 | 21.3% |
 
 ## Top diagnoses by paid amount
 
@@ -30,12 +50,12 @@ Illustrative code list, not authoritative coding; synthetic data.
 
 | Diagnosis | Description | Claims | Avg billed | Paid | Denial rate |
 | --- | --- | ---: | ---: | ---: | ---: |
-| I10 | Essential hypertension | 937 | $2,684 | $1,452,793 | 12.7% |
-| Z00.00 | General adult medical exam | 708 | $2,918 | $1,299,002 | 13.4% |
-| R51 | Headache | 967 | $2,500 | $1,278,333 | 14.0% |
-| M54.5 | Low back pain | 927 | $2,310 | $1,240,751 | 12.7% |
-| J06.9 | Acute upper respiratory infection | 918 | $2,396 | $1,233,965 | 12.8% |
-| E11.9 | Type 2 diabetes without complications | 903 | $2,265 | $1,160,160 | 13.0% |
+| I10 | Essential hypertension | 957 | $2,685 | $1,485,228 | 12.8% |
+| Z00.00 | General adult medical exam | 715 | $2,986 | $1,343,980 | 13.3% |
+| R51 | Headache | 993 | $2,532 | $1,331,731 | 13.9% |
+| J06.9 | Acute upper respiratory infection | 951 | $2,387 | $1,272,049 | 12.6% |
+| M54.5 | Low back pain | 944 | $2,309 | $1,261,770 | 12.7% |
+| E11.9 | Type 2 diabetes without complications | 920 | $2,292 | $1,198,777 | 13.0% |
 
 ## Most common diagnosis/procedure pairs
 
@@ -43,20 +63,20 @@ Pairs come from independent synthetic draws: this shows the generator's mix, not
 
 | Diagnosis | Procedure | Claims | Denial rate | Paid |
 | --- | --- | ---: | ---: | ---: |
-| R51 | 93000 | 116 | 8.6% | $6,634 |
-| M54.5 | 99285 | 113 | 16.8% | $68,004 |
-| R51 | 80053 | 110 | 12.7% | $5,218 |
-| R51 | 43239 | 108 | 17.6% | $117,353 |
-| J06.9 | 93000 | 107 | 15.9% | $5,990 |
-| M54.5 | 80053 | 106 | 12.3% | $4,759 |
+| R51 | 93000 | 118 | 8.5% | $6,784 |
+| M54.5 | 99285 | 115 | 16.5% | $69,208 |
+| R51 | 80053 | 114 | 12.3% | $5,437 |
+| J06.9 | 93000 | 109 | 15.6% | $6,184 |
+| R51 | 43239 | 109 | 17.4% | $118,799 |
+| M54.5 | 80053 | 108 | 12.0% | $4,854 |
 
 ## Claim status breakdown
 
 | Status | Claims | Share | Billed | Paid |
 | --- | ---: | ---: | ---: | ---: |
-| paid | 4126 | 77.0% | $10,040,365 | $6,613,224 |
-| adjusted | 532 | 9.9% | $1,646,930 | $1,051,779 |
-| denied | 702 | 13.1% | $1,696,533 | $0 |
+| paid | 4219 | 77.0% | $10,404,697 | $6,828,821 |
+| adjusted | 545 | 10.0% | $1,670,209 | $1,064,714 |
+| denied | 716 | 13.1% | $1,702,503 | $0 |
 
 ## Leading denial reason by month
 
@@ -64,34 +84,34 @@ Months with fewer than 10 denials are omitted. Most synthetic claims fall in the
 
 | Month | Denials | Leading reason | Share of denials |
 | --- | ---: | --- | ---: |
-| 2026-08 | 68 | not medically necessary | 27.9% |
-| 2026-09 | 228 | missing prior authorization | 27.6% |
-| 2026-10 | 231 | missing prior authorization | 26.4% |
-| 2026-11 | 140 | not medically necessary | 25.0% |
+| 2026-08 | 69 | not medically necessary | 29.0% |
+| 2026-09 | 231 | missing prior authorization | 27.3% |
+| 2026-10 | 233 | missing prior authorization | 26.2% |
+| 2026-11 | 148 | not medically necessary | 25.0% |
 
 ## Denial reasons
 
-- not medically necessary (171)
-- out-of-network provider (170)
-- missing prior authorization (168)
-- timely filing exceeded (166)
-- duplicate claim (27)
+- not medically necessary (175)
+- out-of-network provider (171)
+- timely filing exceeded (171)
+- missing prior authorization (169)
+- duplicate claim (30)
 
 ## Plan mix
 
-- EPO: 1354
-- PPO: 1346
-- HMO: 1336
-- HDHP: 1324
+- EPO: 1387
+- PPO: 1377
+- HMO: 1366
+- HDHP: 1350
 
 ## Plan performance
 
 | Plan | Claims | Denial rate | Paid / billed |
 | --- | ---: | ---: | ---: |
-| EPO | 1354 | 13.4% | 56.2% |
-| PPO | 1346 | 12.0% | 54.6% |
-| HMO | 1336 | 14.7% | 56.4% |
-| HDHP | 1324 | 12.2% | 61.4% |
+| EPO | 1387 | 13.5% | 56.2% |
+| PPO | 1377 | 12.1% | 54.8% |
+| HMO | 1366 | 14.4% | 56.5% |
+| HDHP | 1350 | 12.2% | 61.3% |
 
 ![Denial rate by plan type](plan_denial_rates.png)
 
@@ -101,10 +121,10 @@ Network discount = 1 - allowed/billed. Member cost share = (allowed - paid)/allo
 
 | Plan | Claims | Network discount | Member cost share |
 | --- | ---: | ---: | ---: |
-| HMO | 1140 | 22.4% | 15.6% |
-| PPO | 1184 | 24.0% | 15.4% |
-| HDHP | 1162 | 22.0% | 14.7% |
-| EPO | 1172 | 23.3% | 14.0% |
+| HMO | 1169 | 22.5% | 15.7% |
+| PPO | 1210 | 24.2% | 15.4% |
+| HDHP | 1185 | 22.2% | 14.7% |
+| EPO | 1200 | 23.5% | 14.3% |
 
 ## Denial-rate outliers (plan x month)
 
@@ -118,19 +138,19 @@ Billed amount on denied claims. A reason with few claims can still carry a large
 
 | Reason | Claims | Billed | Share | Avg billed |
 | --- | ---: | ---: | ---: | ---: |
-| missing prior authorization | 168 | $495,781 | 29.2% | $2,951 |
-| not medically necessary | 171 | $446,925 | 26.3% | $2,614 |
-| timely filing exceeded | 166 | $395,613 | 23.3% | $2,383 |
-| out-of-network provider | 170 | $270,458 | 15.9% | $1,591 |
-| duplicate claim | 27 | $87,756 | 5.2% | $3,250 |
+| missing prior authorization | 169 | $495,816 | 29.1% | $2,934 |
+| not medically necessary | 175 | $449,801 | 26.4% | $2,570 |
+| timely filing exceeded | 171 | $397,974 | 23.4% | $2,327 |
+| out-of-network provider | 171 | $270,578 | 15.9% | $1,582 |
+| duplicate claim | 30 | $88,335 | 5.2% | $2,944 |
 
 ## Duplicate-claim leakage screen
 
 In each same member/procedure/date group the first claim is the original. A review queue, not proof: repeat services can be legitimate. In this synthetic data older repeats are chance collisions of random fields (mostly paid), while newer batches add deliberate repeats, most denied as duplicate and some paid. Illustrative, not real payment-integrity rates.
 
-- Groups with repeats: 120 (129 later claims)
-- Later claims denied as duplicate: 27
-- Later claims still paid: 92 ($208,044 to review)
+- Groups with repeats: 124 (133 later claims)
+- Later claims denied as duplicate: 30
+- Later claims still paid: 93 ($208,931 to review)
 - Claims denied as duplicate with no matching original: 0
 
 ## Members by number of claims
@@ -139,10 +159,10 @@ How many claims each synthetic member has, and where paid dollars sit. Members w
 
 | Claims per member | Members | % of members | Paid | % of paid |
 | --- | ---: | ---: | ---: | ---: |
-| 1 claim | 384 | 20.8% | $354,627 | 4.6% |
-| 2 claims | 461 | 25.0% | $1,284,880 | 16.8% |
-| 3 claims | 411 | 22.3% | $1,858,066 | 24.2% |
-| 4+ claims | 590 | 32.0% | $4,167,431 | 54.4% |
+| 1 claim | 356 | 19.3% | $350,010 | 4.4% |
+| 2 claims | 462 | 25.0% | $1,209,095 | 15.3% |
+| 3 claims | 418 | 22.6% | $1,993,201 | 25.2% |
+| 4+ claims | 612 | 33.1% | $4,341,228 | 55.0% |
 
 ## Claims by billed-amount band
 
@@ -152,10 +172,10 @@ Share of claims versus share of paid dollars. Band edges are illustrative; synth
 
 | Billed band | Claims | % of claims | Paid | % of paid | Denial rate |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| under $100 | 1559 | 29.1% | $61,195 | 0.8% | 12.8% |
-| $100-$999 | 2494 | 46.5% | $452,670 | 5.9% | 13.2% |
-| $1,000-$9,999 | 865 | 16.1% | $854,672 | 11.2% | 13.5% |
-| $10,000+ | 442 | 8.2% | $6,296,466 | 82.2% | 12.4% |
+| under $100 | 1590 | 29.0% | $62,585 | 0.8% | 12.6% |
+| $100-$999 | 2549 | 46.5% | $461,219 | 5.8% | 13.4% |
+| $1,000-$9,999 | 884 | 16.1% | $871,403 | 11.0% | 13.5% |
+| $10,000+ | 457 | 8.3% | $6,498,328 | 82.3% | 12.0% |
 
 ## Aggregate reconciliation
 
@@ -163,14 +183,14 @@ Every view accounts for the whole store.
 
 | Check | View | Store | Match |
 | --- | ---: | ---: | :---: |
-| claims: monthly view | 5,360 | 5,360 | yes |
-| claims: plan mix | 5,360 | 5,360 | yes |
-| claims: plan performance | 5,360 | 5,360 | yes |
-| claims: age bands | 5,360 | 5,360 | yes |
-| claims: cost per member | 5,360 | 5,360 | yes |
-| paid $: monthly view | 7,665,003.37 | 7,665,003.37 | yes |
-| paid $: age bands | 7,665,002.21 | 7,665,003.37 | yes |
-| denied claims: reasons | 702 | 702 | yes |
+| claims: monthly view | 5,480 | 5,480 | yes |
+| claims: plan mix | 5,480 | 5,480 | yes |
+| claims: plan performance | 5,480 | 5,480 | yes |
+| claims: age bands | 5,480 | 5,480 | yes |
+| claims: cost per member | 5,480 | 5,480 | yes |
+| paid $: monthly view | 7,893,534.68 | 7,893,534.68 | yes |
+| paid $: age bands | 7,893,528.47 | 7,893,534.68 | yes |
+| denied claims: reasons | 716 | 716 | yes |
 
 ## Data provenance
 
@@ -178,7 +198,7 @@ Every view accounts for the whole store.
 
 | Origin | Claims |
 | --- | ---: |
-| generated | 223 |
+| generated | 343 |
 | regenerated-2026-11-21 | 553 |
 | regenerated-2026-11-21+2026-11-22 | 12 |
 | regenerated-2026-11-21+2026-11-22+2026-11-23 | 71 |
@@ -193,10 +213,10 @@ Distinct synthetic members, claims and paid dollars per member in the store. Not
 
 | Plan | Members | Claims | Claims / member | Paid / member |
 | --- | ---: | ---: | ---: | ---: |
-| HDHP | 447 | 1324 | 2.96 | $5,145 |
-| PPO | 465 | 1346 | 2.89 | $4,299 |
-| EPO | 472 | 1354 | 2.87 | $3,812 |
-| HMO | 462 | 1336 | 2.89 | $3,392 |
+| HDHP | 447 | 1350 | 3.02 | $5,226 |
+| PPO | 466 | 1377 | 2.95 | $4,466 |
+| EPO | 472 | 1387 | 2.94 | $3,946 |
+| HMO | 463 | 1366 | 2.95 | $3,486 |
 
 ## Members with repeated denials
 
@@ -216,32 +236,32 @@ Lowest ratios first (non-denied claims, procedures with enough volume). A lower 
 
 | Procedure | Claims | Billed | Allowed | Allowed / billed |
 | --- | ---: | ---: | ---: | ---: |
-| 43239 | 471 | $964,365 | $740,685 | 76.8% |
-| 27447 | 387 | $9,590,267 | $7,391,280 | 77.1% |
-| 85025 | 462 | $24,590 | $18,993 | 77.2% |
-| 99213 | 485 | $58,300 | $45,109 | 77.4% |
-| 93000 | 495 | $49,409 | $38,258 | 77.4% |
-| 99285 | 496 | $528,444 | $409,225 | 77.4% |
+| 43239 | 478 | $978,315 | $751,299 | 76.8% |
+| 27447 | 402 | $9,936,273 | $7,634,651 | 76.8% |
+| 85025 | 470 | $25,033 | $19,317 | 77.2% |
+| 70450 | 472 | $309,375 | $239,468 | 77.4% |
+| 99213 | 495 | $59,653 | $46,173 | 77.4% |
+| 99285 | 507 | $541,335 | $419,476 | 77.5% |
 
 ## Paid-amount concentration
 
-Share of total paid (5360 claims) held by the largest claims. Synthetic data, illustrative.
+Share of total paid (5480 claims) held by the largest claims. Synthetic data, illustrative.
 
 ![Paid concentration curve](paid_concentration.png)
 
 | Top claims | Count | Share of paid |
 | --- | ---: | ---: |
-| top 1% | 54 | 16.9% |
-| top 5% | 268 | 64.7% |
-| top 10% | 536 | 85.7% |
+| top 1% | 55 | 16.7% |
+| top 5% | 274 | 64.2% |
+| top 10% | 548 | 85.7% |
 
 ## Procedures behind the top denial reasons
 
 | Denial reason | Denials | Top procedures (share of that reason) |
 | --- | ---: | --- |
-| not medically necessary | 171 | 43239 (14%), 99285 (13%), 93000 (12%) |
-| out-of-network provider | 170 | 99285 (14%), 80053 (13%), 93000 (12%) |
-| missing prior authorization | 168 | 99285 (13%), 85025 (12%), 70450 (11%) |
+| not medically necessary | 175 | 43239 (14%), 99285 (13%), 93000 (12%) |
+| out-of-network provider | 171 | 99285 (13%), 80053 (13%), 93000 (13%) |
+| timely filing exceeded | 171 | 93000 (13%), 99213 (13%), 80053 (11%) |
 
 ## Data quality gates
 
@@ -264,15 +284,15 @@ Share of total paid (5360 claims) held by the largest claims. Synthetic data, il
 
 | Code | Claims | Avg billed | Paid | Denial rate |
 | --- | ---: | ---: | ---: | ---: |
-| 27447 | 442 | $24,818 | $6,296,466 | 12.4% |
-| 43239 | 545 | $2,039 | $625,058 | 13.6% |
-| 99285 | 582 | $1,056 | $347,051 | 14.8% |
-| 70450 | 524 | $650 | $197,213 | 12.0% |
-| 99214 | 545 | $168 | $52,932 | 11.9% |
+| 27447 | 457 | $24,760 | $6,498,328 | 12.0% |
+| 43239 | 554 | $2,037 | $633,695 | 13.7% |
+| 99285 | 593 | $1,059 | $355,594 | 14.5% |
+| 70450 | 536 | $651 | $202,172 | 11.9% |
+| 99214 | 556 | $168 | $53,852 | 12.2% |
 
 ## Member utilization
 
-1001 of 1846 synthetic members have 3+ claims and account for 78.6% of paid dollars.
+1030 of 1848 synthetic members have 3+ claims and account for 80.2% of paid dollars.
 
 | Member | Claims | Paid |
 | --- | ---: | ---: |
@@ -286,10 +306,10 @@ Share of total paid (5360 claims) held by the largest claims. Synthetic data, il
 
 | Plan | Denials | Top reason | Count |
 | --- | ---: | --- | ---: |
-| EPO | 182 | out-of-network provider | 46 |
-| HDHP | 162 | missing prior authorization | 45 |
-| HMO | 196 | not medically necessary | 51 |
-| PPO | 162 | not medically necessary | 43 |
+| EPO | 187 | out-of-network provider | 47 |
+| HDHP | 165 | missing prior authorization | 45 |
+| HMO | 197 | not medically necessary | 51 |
+| PPO | 167 | not medically necessary | 45 |
 
 ## Month-over-month trend (last 6 complete months)
 
@@ -300,13 +320,13 @@ Monthly counts here are shaped by the synthetic generator (daily batches spread 
 | 2026-05 | -10.4% | +48.8% | +3.30 pp |
 | 2026-06 | +7.0% | +7.8% | +3.59 pp |
 | 2026-07 | +2.2% | -41.4% | -6.71 pp |
-| 2026-08 | +1095.7% | +1068.8% | +3.59 pp |
-| 2026-09 | +193.1% | +182.2% | +1.74 pp |
-| 2026-10 | +1.3% | -6.5% | +0.01 pp |
+| 2026-08 | +1108.5% | +1083.8% | +3.64 pp |
+| 2026-09 | +196.5% | +193.0% | +1.57 pp |
+| 2026-10 | +1.4% | -8.7% | -0.08 pp |
 
 ## Potential duplicate services
 
-120 groups share a member, procedure and service date (review queue, not a quality failure).
+124 groups share a member, procedure and service date (review queue, not a quality failure).
 
 | Member | Procedure | Date | Claims | Paid |
 | --- | --- | --- | ---: | ---: |
