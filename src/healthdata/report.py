@@ -44,7 +44,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     reasons_by_month: list[dict] | None = None,
                     month_dist: list[dict] | None = None,
                     age_denials: list[dict] | None = None,
-                    member_denials: dict | None = None) -> str:
+                    member_denials: dict | None = None,
+                    plan_intervals: list[dict] | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -272,6 +273,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Plan | Denials | Top reason | Count |", "| --- | ---: | --- | ---: |"]
         for plan, reasons in reasons_by_plan.items():
             lines.append(f"| {plan} | {sum(c for _, c in reasons)} | {reasons[0][0]} | {reasons[0][1]} |")
+    if plan_intervals:
+        lines += ["", "## Plan denial rates with 95% intervals", "",
+                  "Wilson score intervals. The generator draws denials at the same rate for every plan, so "
+                  "overlap with the overall rate is expected; plan labels carry no benefit realism.", "",
+                  "| Plan | Claims | Denial rate | 95% interval | Differs from overall |",
+                  "| --- | ---: | ---: | --- | --- |"]
+        for r in plan_intervals:
+            lines.append(f"| {r['plan']} | {r['claims']} | {r['denial_rate']:.1%} | "
+                         f"{r['low']:.1%} to {r['high']:.1%} | {'yes' if r['differs_from_overall'] else 'no'} |")
     if member_denials and member_denials["members"]:
         lines += ["", "## Member denial experience", "",
                   f"Members with {member_denials['min_claims']}+ claims ({member_denials['members']}). "

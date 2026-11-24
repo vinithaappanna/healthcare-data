@@ -811,3 +811,23 @@ def test_member_denial_experience_buckets_and_floor(tmp_path):
     assert out["members"] == 3 and [b["members"] for b in out["buckets"]] == [1, 1, 1]
     assert out["buckets"][0]["share"] == 0.3333
     assert "| 2+ denials | 1 | 33.3% |" in report.render_markdown([], [], [], 0, member_denials=out)
+
+
+def test_plan_denial_intervals_wilson_and_flag(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "wi.csv")
+    assert pipe.plan_denial_intervals() == []
+    rows = []
+    def add(plan, i, denied):
+        kw = dict(status="denied", denial_reason="not covered", allowed_amount=0, paid_amount=0) if denied else {}
+        rows.append(make_valid(f"{plan}-{i}", plan_type=plan, **kw))
+    for i in range(200): add("PPO", i, i < 100)      # 50%
+    for i in range(200): add("HMO", i, i < 2)        # 1%
+    for i in range(4): add("EPO", i, i == 0)         # tiny: wide interval
+    pipe.ingest(rows)
+    out = {r["plan"]: r for r in pipe.plan_denial_intervals()}
+    assert out["PPO"]["low"] < 0.5 < out["PPO"]["high"] and 0.43 < out["PPO"]["low"] < 0.44
+    assert out["HMO"]["differs_from_overall"] and out["PPO"]["differs_from_overall"]
+    assert not out["EPO"]["differs_from_overall"] and out["EPO"]["high"] - out["EPO"]["low"] > 0.5
+    assert all(0.0 <= r["low"] <= r["denial_rate"] <= r["high"] <= 1.0 for r in out.values())
+    assert "| PPO | 200 | 50.0% |" in report.render_markdown([], [], [], 0, plan_intervals=list(out.values()))

@@ -438,6 +438,33 @@ class Pipeline:
                for p in plans.values()]
         return sorted(out, key=lambda r: (-r["claims"], r["plan"]))
 
+    def plan_denial_intervals(self, z: float = 1.96) -> list[dict]:
+        """Denial rate per plan with a Wilson score interval (95% by default),
+        so small plans are not over-read. Plans are 'distinguishable' from the
+        overall rate only when their interval excludes it. Synthetic data: the
+        generator draws denials at the same rate for every plan, so overlap
+        with the overall rate is the expected result."""
+        import math
+
+        agg: dict[str, list] = {}
+        for r in self.load_store().values():
+            c = agg.setdefault(r["plan_type"] or "Unknown", [0, 0])
+            c[0] += 1
+            c[1] += r["status"] == "denied"
+        total_n = sum(n for n, _ in agg.values())
+        overall = sum(d for _, d in agg.values()) / total_n if total_n else 0.0
+        out = []
+        for plan, (n, d) in agg.items():
+            p = d / n
+            denom = 1 + z * z / n
+            centre = (p + z * z / (2 * n)) / denom
+            half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
+            lo, hi = max(0.0, centre - half), min(1.0, centre + half)
+            out.append({"plan": plan, "claims": n, "denial_rate": round(p, 4),
+                        "low": round(lo, 4), "high": round(hi, 4),
+                        "differs_from_overall": not (lo <= overall <= hi)})
+        return sorted(out, key=lambda r: (-r["claims"], r["plan"]))
+
     def plan_cost_sharing(self) -> list[dict]:
         """Per plan type, on non-denied claims: network discount (billed to
         allowed) and member cost share (allowed minus paid, as a share of
