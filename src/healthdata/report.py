@@ -239,6 +239,9 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Top claims | Count | Share of paid |", "| --- | ---: | ---: |"]
         for t in concentration["tiers"]:
             lines.append(f"| top {t['top_pct']:.0%} | {t['claims']} | {t['share_of_paid']:.1%} |")
+        if concentration.get("gini") is not None:
+            lines += ["", f"Gini coefficient of paid per claim: **{concentration['gini']:.3f}** "
+                      "(0 = every claim paid the same, 1 = one claim holds all of it; denied claims count as 0)."]
     if denial_procs:
         lines += ["", "## Procedures behind the top denial reasons", "",
                   "| Denial reason | Denials | Top procedures (share of that reason) |",

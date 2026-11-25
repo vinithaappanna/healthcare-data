@@ -526,9 +526,12 @@ class Pipeline:
 
         paid = sorted((float(r["paid_amount"] or 0) for r in self.load_store().values()), reverse=True)
         total = sum(paid)
-        out = {"claims": len(paid), "total_paid": round(total, 2), "tiers": []}
+        out = {"claims": len(paid), "total_paid": round(total, 2), "tiers": [], "gini": None}
         if not paid or total <= 0:
             return out
+        asc = paid[::-1]          # Gini of paid per claim: 0 = equal, 1 = one claim holds everything
+        n = len(asc)
+        out["gini"] = round(sum((2 * i - n + 1) * v for i, v in enumerate(asc)) / (n * total), 4)
         for pct in tiers:
             k = max(1, math.ceil(len(paid) * pct))
             out["tiers"].append({"top_pct": pct, "claims": k,

@@ -831,3 +831,19 @@ def test_plan_denial_intervals_wilson_and_flag(tmp_path):
     assert not out["EPO"]["differs_from_overall"] and out["EPO"]["high"] - out["EPO"]["low"] > 0.5
     assert all(0.0 <= r["low"] <= r["denial_rate"] <= r["high"] <= 1.0 for r in out.values())
     assert "| PPO | 200 | 50.0% |" in report.render_markdown([], [], [], 0, plan_intervals=list(out.values()))
+
+
+def test_paid_concentration_gini(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "g.csv")
+    assert pipe.paid_concentration()["gini"] is None
+    eq = [make_valid(f"E-{i}", billed_amount=100, allowed_amount=80, paid_amount=50) for i in range(4)]
+    pipe.ingest(eq)
+    assert pipe.paid_concentration()["gini"] == 0.0
+    pipe2 = Pipeline(tmp_path / "g2.csv")
+    pipe2.ingest([make_valid("U-0", billed_amount=100, allowed_amount=80, paid_amount=60)] +
+                 [make_valid(f"U-{i}", billed_amount=100, allowed_amount=0, paid_amount=0,
+                             status="denied", denial_reason="not covered") for i in range(1, 4)])
+    assert pipe2.paid_concentration()["gini"] == 0.75          # (n-1)/n when one of n holds all
+    md = report.render_markdown([], [], [], 0, concentration=pipe2.paid_concentration())
+    assert "Gini coefficient of paid per claim: **0.750**" in md
