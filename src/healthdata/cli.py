@@ -77,10 +77,20 @@ def main(argv: list[str] | None = None, store: Path | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name in ("claim", "member", "plan", "procedure", "diagnosis"):
         sub.add_parser(name).add_argument("key")
-    for name in ("reconcile", "origins", "bands", "summary", "months"):
+    for name in ("reconcile", "origins", "bands", "summary", "months", "gates"):
         sub.add_parser(name)        # whole-store views: no key
     args = parser.parse_args(argv)
     pipe = Pipeline(store or Path(__file__).resolve().parents[2] / "data" / "claims.csv")
+    if args.cmd == "gates":
+        from .quality import load_rows, run_checks
+
+        rows = load_rows(pipe.store_path)
+        if rows is None:
+            print(json.dumps({"error": f"store not found: {pipe.store_path}"}))
+            return 2
+        results = run_checks(rows)
+        print(json.dumps([{"check": n, "issues": len(i), "ok": not i, "examples": i[:3]} for n, i in results], indent=2))
+        return 0 if all(not i for _n, i in results) else 2      # 2: a gate failed, same as reconcile
     if args.cmd == "months":
         print(json.dumps(pipe.month_distribution(), indent=2))
         return 0

@@ -112,3 +112,24 @@ def test_months_command_prints_distribution(tmp_path, capsys):
     Pipeline(store).ingest([make_valid("A-1", service_date="2026-10-01")])
     assert main(["months"], store=store) == 0
     assert json.loads(capsys.readouterr().out)[0]["month"] == "2026-10"
+
+
+def test_gates_command_reports_each_check_and_exit_code(tmp_path, capsys):
+    import json
+    from healthdata.cli import main
+    from healthdata.pipeline import Pipeline
+    store = tmp_path / "g.csv"
+    Pipeline(store).ingest([make_valid("A-1", service_date="2026-10-01")])
+    assert main(["gates"], store=store) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert len(out) == 10 and all(g["ok"] for g in out) and out[0]["check"] == "amount consistency"
+    # corrupt a row: paid above allowed
+    import csv
+    rows = list(csv.DictReader(store.open()))
+    rows[0]["paid_amount"] = str(float(rows[0]["allowed_amount"]) + 50)
+    with store.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=rows[0].keys()); w.writeheader(); w.writerows(rows)
+    assert main(["gates"], store=store) == 2
+    bad = [g for g in json.loads(capsys.readouterr().out) if not g["ok"]]
+    assert bad[0]["check"] == "amount consistency" and bad[0]["issues"] == 1
+    assert main(["gates"], store=tmp_path / "missing.csv") == 2
