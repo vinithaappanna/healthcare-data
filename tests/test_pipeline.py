@@ -890,3 +890,21 @@ def test_procedure_denial_screen_flags_outlier_only_and_renders(tmp_path):
     assert "| 93000 | 50 | 50.0% |" in md
     none = {"overall": 0.1, "tested": 5, "min_claims": 30, "hits": []}
     assert "No procedure's interval excludes" in report.render_markdown([], [], [], 0, proc_screen=none)
+
+
+def test_plan_denied_dollars_shares_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([
+        make_valid("CLM-1", plan_type="PPO", billed_amount=100, allowed_amount=0, paid_amount=0,
+                   status="denied", denial_reason="duplicate claim"),
+        make_valid("CLM-2", plan_type="PPO", billed_amount=300),
+        make_valid("CLM-3", plan_type="HMO", billed_amount=50),
+    ])
+    out = {r["plan"]: r for r in pipe.plan_denied_dollars()}
+    assert out["PPO"] == {"plan": "PPO", "claims": 2, "denial_rate": 0.5, "denied_billed": 100.0, "denied_dollar_share": 0.25}
+    assert out["HMO"]["denied_billed"] == 0.0 and out["HMO"]["denied_dollar_share"] == 0.0
+    assert [r["plan"] for r in pipe.plan_denied_dollars()] == ["PPO", "HMO"]
+    md = report.render_markdown([], [], [], 0, plan_denied_dollars=list(out.values()))
+    assert "| PPO | 2 | 50.0% | 100.00 | 25.0% |" in md and "synthetic label" in md
+    assert Pipeline(tmp_path / "none.csv").plan_denied_dollars() == []

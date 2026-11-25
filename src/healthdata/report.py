@@ -25,6 +25,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     duplicates: list[dict] | None = None,
                     trend: list[dict] | None = None,
                     cost_sharing: list[dict] | None = None,
+                    plan_denied_dollars: list[dict] | None = None,
                     outliers: list[dict] | None = None,
                     concentration: dict | None = None,
                     gates: list[tuple[str, int]] | None = None,
@@ -136,6 +137,15 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for r in cost_sharing:
             lines.append(f"| {r['plan']} | {r['claims']} | {r['network_discount']:.1%} | "
                          f"{r['member_cost_share']:.1%} |")
+    if plan_denied_dollars:
+        lines += ["", "## Denied dollars by plan", "",
+                  "Denial rate counts claims; denied-dollar share is billed dollars on denied claims over all billed dollars. "
+                  "A dollar share below the claim rate means denials fall on cheaper claims. Plan is a synthetic label only.", "",
+                  "| Plan | Claims | Denial rate | Denied billed ($) | Denied-dollar share |",
+                  "| --- | ---: | ---: | ---: | ---: |"]
+        for r in plan_denied_dollars:
+            lines.append(f"| {r['plan']} | {r['claims']} | {r['denial_rate']:.1%} | "
+                         f"{r['denied_billed']:,.2f} | {r['denied_dollar_share']:.1%} |")
     if outliers is not None:
         lines += ["", "## Denial-rate outliers (plan x month)", "",
                   "Cells whose denial rate is at least 2 standard errors from the overall rate "

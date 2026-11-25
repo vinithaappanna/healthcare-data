@@ -624,6 +624,28 @@ class Pipeline:
         rows.sort(key=lambda x: (-x["denied"], -x["denial_rate"], x["member"]))
         return rows[:top]
 
+    def plan_denied_dollars(self) -> list[dict]:
+        """Per plan: denial rate by claim count next to the share of billed
+        dollars that sit on denied claims. A gap between the two means denials
+        concentrate on cheaper (below) or costlier (above) claims. Synthetic
+        labels only; sorted by denied billed dollars, descending."""
+        plans: dict[str, dict] = {}
+        for row in self.load_store().values():
+            p = plans.setdefault(row["plan_type"] or "Unknown",
+                                 {"claims": 0, "denied": 0, "billed": 0.0, "denied_billed": 0.0})
+            b = float(row["billed_amount"] or 0)
+            p["claims"] += 1
+            p["billed"] += b
+            if row["status"] == "denied":
+                p["denied"] += 1
+                p["denied_billed"] += b
+        out = [{"plan": k, "claims": v["claims"],
+                "denial_rate": round(v["denied"] / v["claims"], 4),
+                "denied_billed": round(v["denied_billed"], 2),
+                "denied_dollar_share": round(v["denied_billed"] / v["billed"], 4) if v["billed"] else 0.0}
+               for k, v in plans.items()]
+        return sorted(out, key=lambda r: (-r["denied_billed"], r["plan"]))
+
     def plan_per_member(self) -> list[dict]:
         """Per plan: distinct synthetic members seen, claims per member and
         paid dollars per member in the store (a rough per-member-cost view; a
