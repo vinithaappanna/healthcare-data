@@ -75,6 +75,7 @@ def main(root: Path | None = None) -> int:
                                member_denials=pipe.member_denial_experience(),
                                plan_intervals=pipe.plan_denial_intervals(),
                                plan_age=pipe.plan_age_matrix(),
+                               proc_screen=pipe.procedure_denial_screen(),
                                dx_proc_pairs=pipe.diagnosis_procedure_pairs(),
                                reasons_by_month=pipe.denial_reasons_by_month(),
                                statuses=pipe.status_breakdown(),

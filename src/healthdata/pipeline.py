@@ -558,6 +558,38 @@ class Pipeline:
         rows.sort(key=lambda x: (x["allowed_to_billed"], x["procedure"]))
         return rows[:top]
 
+    def procedure_denial_screen(self, min_claims: int = 30, top: int = 5, z: float = 1.96) -> dict:
+        """Procedure codes whose denial rate's Wilson interval excludes the
+        overall denial rate, ordered by distance from it. Codes under
+        min_claims are skipped. With many codes and 95% intervals an occasional code
+        clears the bar by chance alone, and the generator draws denials at
+        one rate for every code, so hits are screening leads, not findings."""
+        import math
+
+        agg: dict[str, list] = {}
+        for r in self.load_store().values():
+            c = agg.setdefault(r["procedure_code"] or "Unknown", [0, 0])
+            c[0] += 1
+            c[1] += r["status"] == "denied"
+        total = sum(n for n, _ in agg.values())
+        overall = sum(d for _, d in agg.values()) / total if total else 0.0
+        tested, hits = 0, []
+        for code, (n, d) in agg.items():
+            if n < min_claims:
+                continue
+            tested += 1
+            p = d / n
+            denom = 1 + z * z / n
+            centre = (p + z * z / (2 * n)) / denom
+            half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
+            lo, hi = max(0.0, centre - half), min(1.0, centre + half)
+            if not lo <= overall <= hi:
+                hits.append({"procedure": code, "claims": n, "denial_rate": round(p, 4),
+                             "low": round(lo, 4), "high": round(hi, 4),
+                             "gap_pp": round((p - overall) * 100, 2)})
+        hits.sort(key=lambda h: (-abs(h["gap_pp"]), h["procedure"]))
+        return {"overall": round(overall, 4), "tested": tested, "min_claims": min_claims, "hits": hits[:top]}
+
     def denied_dollars_by_reason(self) -> list[dict]:
         """Billed dollars on denied claims per denial reason, largest first,
         with each reason's share of all denied billed dollars. Counts alone can

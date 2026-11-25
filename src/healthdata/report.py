@@ -46,7 +46,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     age_denials: list[dict] | None = None,
                     member_denials: dict | None = None,
                     plan_intervals: list[dict] | None = None,
-                    plan_age: dict | None = None) -> str:
+                    plan_age: dict | None = None,
+                    proc_screen: dict | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -294,6 +295,19 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| --- |" + " ---: |" * len(plan_age["bands"])]
         for r in plan_age["rows"]:
             lines.append(f"| {r['plan']} | " + " | ".join("-" if v is None else f"${v:,.0f}" for v in r["avg_paid"]) + " |")
+    if proc_screen and proc_screen["tested"]:
+        lines += ["", "## Procedure denial-rate screen", "",
+                  f"{proc_screen['tested']} procedure codes with {proc_screen['min_claims']}+ claims tested against the overall "
+                  f"denial rate ({proc_screen['overall']:.1%}) using 95% Wilson intervals. With this many tests an occasional hit is "
+                  "expected by chance, and the generator uses one denial rate for every code: leads for review, not findings."]
+        if proc_screen["hits"]:
+            lines += ["", "| Procedure | Claims | Denial rate | 95% interval | Gap vs overall |",
+                      "| --- | ---: | ---: | --- | ---: |"]
+            for h in proc_screen["hits"]:
+                lines.append(f"| {h['procedure']} | {h['claims']} | {h['denial_rate']:.1%} | "
+                             f"{h['low']:.1%} to {h['high']:.1%} | {h['gap_pp']:+.1f} pp |")
+        else:
+            lines += ["", "No procedure's interval excludes the overall rate."]
     if member_denials and member_denials["members"]:
         lines += ["", "## Member denial experience", "",
                   f"Members with {member_denials['min_claims']}+ claims ({member_denials['members']}). "

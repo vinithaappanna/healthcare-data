@@ -866,3 +866,27 @@ def test_plan_age_matrix_means_thin_cells_and_render(tmp_path):
     assert by["PPO"] == [None, 20.0] and by["HMO"] == [60.0, None]
     md = report.render_markdown([], [], [], 0, plan_age=out)
     assert "| PPO | - | $20 |" in md and "| HMO | $60 | - |" in md
+
+
+def test_procedure_denial_screen_flags_outlier_only_and_renders(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "ps.csv")
+    assert pipe.procedure_denial_screen()["tested"] == 0
+    rows = []
+    def add(code, i, denied):
+        kw = dict(status="denied", denial_reason="not covered", allowed_amount=0, paid_amount=0) if denied else {}
+        rows.append(make_valid(f"{code}-{i}", procedure_code=code, **kw))
+    for i in range(200): add("99213", i, i < 20)     # 10%
+    for i in range(200): add("99214", i, i < 22)     # 11%
+    for i in range(200): add("43239", i, i < 18)     # 9%
+    for i in range(50): add("93000", i, i < 25)      # 50%: clear outlier
+    for i in range(10): add("80053", i, False)       # under floor: skipped
+    pipe.ingest(rows)
+    out = pipe.procedure_denial_screen()
+    assert out["tested"] == 4 and [h["procedure"] for h in out["hits"]] == ["93000"]
+    assert out["hits"][0]["gap_pp"] > 25 and out["hits"][0]["low"] < 0.5 < out["hits"][0]["high"]
+    assert pipe.procedure_denial_screen(min_claims=500)["tested"] == 0
+    md = report.render_markdown([], [], [], 0, proc_screen=out)
+    assert "| 93000 | 50 | 50.0% |" in md
+    none = {"overall": 0.1, "tested": 5, "min_claims": 30, "hits": []}
+    assert "No procedure's interval excludes" in report.render_markdown([], [], [], 0, proc_screen=none)
