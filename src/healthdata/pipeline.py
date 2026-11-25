@@ -693,6 +693,30 @@ class Pipeline:
                      "paid": round(m["paid"], 2)} for m in top_rows],
         }
 
+    def plan_age_matrix(self, min_claims: int = 20) -> dict:
+        """Average paid per claim for each plan x age band cell (all claims,
+        denied count as 0). Cells under min_claims are None so thin cells are
+        not read as findings. Rows follow plan name order, columns AGE_BANDS
+        order. Plan and age are synthetic labels with no benefit or clinical
+        realism: differences are generator noise."""
+        from .claims import AGE_BANDS
+
+        cells: dict[tuple, list] = {}
+        for r in self.load_store().values():
+            c = cells.setdefault((r["plan_type"] or "Unknown", r["age_band"] or "Unknown"), [0, 0.0])
+            c[0] += 1
+            c[1] += float(r["paid_amount"] or 0)
+        plans = sorted({p for p, _ in cells})
+        bands = [b for b in AGE_BANDS if any(b == k[1] for k in cells)]
+        rows = []
+        for plan in plans:
+            vals = []
+            for b in bands:
+                n, paid = cells.get((plan, b), [0, 0.0])
+                vals.append(round(paid / n, 2) if n >= min_claims else None)
+            rows.append({"plan": plan, "avg_paid": vals})
+        return {"bands": bands, "min_claims": min_claims, "rows": rows}
+
     def age_band_costs(self) -> list[dict]:
         """Claims, average paid per claim and denial rate by age band, in
         natural age order. Illustrative synthetic metrics."""

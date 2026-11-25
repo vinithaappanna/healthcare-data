@@ -847,3 +847,22 @@ def test_paid_concentration_gini(tmp_path):
     assert pipe2.paid_concentration()["gini"] == 0.75          # (n-1)/n when one of n holds all
     md = report.render_markdown([], [], [], 0, concentration=pipe2.paid_concentration())
     assert "Gini coefficient of paid per claim: **0.750**" in md
+
+
+def test_plan_age_matrix_means_thin_cells_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "pa.csv")
+    assert pipe.plan_age_matrix()["rows"] == []
+    rows = [make_valid(f"A-{i}", plan_type="PPO", age_band="18-29", billed_amount=100, allowed_amount=80,
+                       paid_amount=40 if i % 2 else 0, **({} if i % 2 else dict(status="denied", denial_reason="not covered")))
+            for i in range(4)]                                   # mean (0+40+0+40)/4 = 20
+    rows += [make_valid("B-0", plan_type="PPO", age_band="0-17")]  # thin cell
+    rows += [make_valid(f"C-{i}", plan_type="HMO", age_band="0-17", billed_amount=100, allowed_amount=80, paid_amount=60)
+             for i in range(4)]
+    pipe.ingest(rows)
+    out = pipe.plan_age_matrix(min_claims=4)
+    assert out["bands"] == ["0-17", "18-29"]
+    by = {r["plan"]: r["avg_paid"] for r in out["rows"]}
+    assert by["PPO"] == [None, 20.0] and by["HMO"] == [60.0, None]
+    md = report.render_markdown([], [], [], 0, plan_age=out)
+    assert "| PPO | - | $20 |" in md and "| HMO | $60 | - |" in md

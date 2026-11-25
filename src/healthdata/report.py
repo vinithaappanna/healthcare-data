@@ -45,7 +45,8 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     month_dist: list[dict] | None = None,
                     age_denials: list[dict] | None = None,
                     member_denials: dict | None = None,
-                    plan_intervals: list[dict] | None = None) -> str:
+                    plan_intervals: list[dict] | None = None,
+                    plan_age: dict | None = None) -> str:
     generated_at = generated_at or dt.datetime.now(dt.timezone.utc)
     total_paid = sum(m["paid"] for m in monthly)
     total_billed = sum(m["billed"] for m in monthly)
@@ -285,6 +286,14 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for r in plan_intervals:
             lines.append(f"| {r['plan']} | {r['claims']} | {r['denial_rate']:.1%} | "
                          f"{r['low']:.1%} to {r['high']:.1%} | {'yes' if r['differs_from_overall'] else 'no'} |")
+    if plan_age and plan_age["rows"]:
+        lines += ["", "## Average paid per claim: plan x age band", "",
+                  f"Denied claims count as 0; cells under {plan_age['min_claims']} claims show '-'. "
+                  "Plan and age are synthetic labels with no benefit or clinical realism, so differences come from the generator (random draws, plus age-restricted procedures such as knee replacement, which lowers the 0-17 column).", "",
+                  "| Plan | " + " | ".join(plan_age["bands"]) + " |",
+                  "| --- |" + " ---: |" * len(plan_age["bands"])]
+        for r in plan_age["rows"]:
+            lines.append(f"| {r['plan']} | " + " | ".join("-" if v is None else f"${v:,.0f}" for v in r["avg_paid"]) + " |")
     if member_denials and member_denials["members"]:
         lines += ["", "## Member denial experience", "",
                   f"Members with {member_denials['min_claims']}+ claims ({member_denials['members']}). "
