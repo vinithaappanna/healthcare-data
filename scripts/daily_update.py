@@ -21,8 +21,10 @@ REPORTS = ROOT / "reports"
 BATCH_SIZE = 60
 
 
-def main(root: Path | None = None) -> int:
-    """Run one round. `root` redirects data/ and reports/ (used by tests)."""
+def main(root: Path | None = None, report_only: bool = False) -> int:
+    """Run one round. `root` redirects data/ and reports/ (used by tests).
+    report_only regenerates the report and charts from the existing store: no
+    new batch, no store writes, so repeat runs are safe."""
     STORE = (root / "data" / "claims.csv") if root else globals()["STORE"]
     REPORTS = (root / "reports") if root else globals()["REPORTS"]
     STORE.parent.mkdir(parents=True, exist_ok=True)
@@ -35,19 +37,26 @@ def main(root: Path | None = None) -> int:
     day_prefix = f"CLM-{day_seed % 100000:05d}"
 
     pipe = Pipeline(STORE)
-    batch_no = next_batch_index(pipe.load_store().keys(), day_prefix)
-    batch = ClaimGenerator(day_seed * 1000 + batch_no, batch=batch_no,
-                           id_prefix=day_prefix).claims(BATCH_SIZE, service_date=today,
-                                                      spread_days=SERVICE_SPREAD_DAYS)
+    if report_only:
+        if not STORE.exists():
+            print("no store to report on; run a full round first")
+            return 1
+        stats = {"total": len(pipe.load_store())}
+        print(f"report-only: no batch added; store holds {stats['total']}")
+    else:
+        batch_no = next_batch_index(pipe.load_store().keys(), day_prefix)
+        batch = ClaimGenerator(day_seed * 1000 + batch_no, batch=batch_no,
+                               id_prefix=day_prefix).claims(BATCH_SIZE, service_date=today,
+                                                          spread_days=SERVICE_SPREAD_DAYS)
 
-    stats = pipe.ingest(batch)
-    fixed = pipe.harmonize_members()
-    if fixed:
-        print(f"repaired {fixed} older synthetic rows (member profile / age plausibility)")
-    print(f"ingested {stats['added']} new claims from batch B{batch_no:02d} "
-          f"({len(stats['rejected'])} rejected); store holds {stats['total']}")
-    for rej in stats["rejected"]:
-        print(f"REJECTED {rej['claim_id']}: {', '.join(rej['problems'])}")
+        stats = pipe.ingest(batch)
+        fixed = pipe.harmonize_members()
+        if fixed:
+            print(f"repaired {fixed} older synthetic rows (member profile / age plausibility)")
+        print(f"ingested {stats['added']} new claims from batch B{batch_no:02d} "
+              f"({len(stats['rejected'])} rejected); store holds {stats['total']}")
+        for rej in stats["rejected"]:
+            print(f"REJECTED {rej['claim_id']}: {', '.join(rej['problems'])}")
 
     issues = run_all(STORE)
     for issue in issues:
@@ -116,4 +125,4 @@ def main(root: Path | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(report_only="--report-only" in sys.argv[1:]))

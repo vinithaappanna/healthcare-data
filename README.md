@@ -35,7 +35,8 @@ seeded RNG - no real member, patient, provider or plan data anywhere.
 ```bash
 pip install -r requirements.txt
 python examples/quick_demo.py       # 500 synthetic claims through the pipeline
-python scripts/daily_update.py      # full update round with quality gates
+python scripts/daily_update.py      # full update round with quality gates (adds one synthetic batch per run)
+python scripts/daily_update.py --report-only   # regenerate report and charts only; no new batch, safe to repeat
 python scripts/query.py member MBR-0076   # claim / member / plan / procedure / diagnosis lookups
 python scripts/query.py reconcile         # do all views account for the store? (exit 2 if not)
 python scripts/query.py gates             # run every quality gate against the store (exit 2 if any fails)

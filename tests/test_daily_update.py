@@ -44,3 +44,18 @@ def test_corrupted_store_fails_the_round(tmp_path, capsys):
     assert mod.main(root=tmp_path) == 1
     assert "QUALITY ISSUE" in capsys.readouterr().out
     assert "FAIL" in (tmp_path / "reports" / "claims_report.md").read_text()
+
+
+def test_report_only_is_repeat_safe_and_adds_no_batch(tmp_path):
+    mod = load_script()
+    assert mod.main(root=tmp_path) == 0
+    store = (tmp_path / "data" / "claims.csv")
+    before = store.read_bytes()
+    assert mod.main(root=tmp_path, report_only=True) == 0
+    assert mod.main(root=tmp_path, report_only=True) == 0
+    assert store.read_bytes() == before                      # store untouched
+    assert (tmp_path / "reports" / "claims_report.md").exists()
+
+
+def test_report_only_without_store_fails_cleanly(tmp_path):
+    assert load_script().main(root=tmp_path, report_only=True) == 1
