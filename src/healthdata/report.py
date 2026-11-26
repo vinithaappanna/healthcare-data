@@ -25,6 +25,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     duplicates: list[dict] | None = None,
                     trend: list[dict] | None = None,
                     cost_sharing: list[dict] | None = None,
+                    independence: dict | None = None,
                     status_ratios: list[dict] | None = None,
                     denial_cats: list[dict] | None = None,
                     plan_denied_dollars: list[dict] | None = None,
@@ -139,6 +140,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for r in cost_sharing:
             lines.append(f"| {r['plan']} | {r['claims']} | {r['network_discount']:.1%} | "
                          f"{r['member_cost_share']:.1%} |")
+    if independence and "chi2" in independence:
+        i = independence
+        lines += ["", "## Plan vs denial: independence test", "",
+                  f"Chi-square test of plan type against denied/not denied over {i['claims']} claims: "
+                  f"chi2 = {i['chi2']}, df = {i['df']}, p = {i['p_value']}. Plan is a synthetic label drawn independently of "
+                  "denial status, so a small p-value would point to a generator or data problem, not real plan behavior. "
+                  "A large p-value is the expected result and is not evidence of fairness or equal treatment."]
     if plan_denied_dollars:
         lines += ["", "## Denied dollars by plan", "",
                   "Denial rate counts claims; denied-dollar share is billed dollars on denied claims over all billed dollars. "

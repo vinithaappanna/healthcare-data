@@ -6,6 +6,8 @@ nothing (dedupe on claim_id).
 """
 from __future__ import annotations
 
+import math
+
 import csv
 from collections import Counter
 from pathlib import Path
@@ -693,6 +695,68 @@ class Pipeline:
         rows = [{"category": k, "claims": n, "billed": round(b, 2), "share": round(n / total, 4)}
                 for k, (n, b) in agg.items()]
         return sorted(rows, key=lambda x: (-x["claims"], x["category"]))
+
+    @staticmethod
+    def chi2_sf(x: float, df: int) -> float:
+        """Survival function of the chi-square distribution (upper-tail p-value)
+        via the regularized incomplete gamma function: series for x < a + 1,
+        continued fraction otherwise. Standard library only."""
+        if x <= 0 or df <= 0:
+            return 1.0
+        a, xx = df / 2.0, x / 2.0
+        gln = math.lgamma(a)
+        if xx < a + 1:
+            term = total = 1.0 / a
+            n = a
+            for _ in range(500):
+                n += 1
+                term *= xx / n
+                total += term
+                if abs(term) < abs(total) * 1e-14:
+                    break
+            return max(0.0, min(1.0, 1.0 - total * math.exp(-xx + a * math.log(xx) - gln)))
+        tiny = 1e-300
+        b = xx + 1 - a
+        c = 1 / tiny
+        d = 1 / b
+        h = d
+        for i in range(1, 500):
+            an = -i * (i - a)
+            b += 2
+            d = an * d + b
+            d = tiny if abs(d) < tiny else d
+            c = b + an / c
+            c = tiny if abs(c) < tiny else c
+            d = 1 / d
+            delta = d * c
+            h *= delta
+            if abs(delta - 1) < 1e-14:
+                break
+        return max(0.0, min(1.0, math.exp(-xx + a * math.log(xx) - gln) * h))
+
+    def plan_denial_independence(self) -> dict:
+        """Chi-square test of independence between plan type and denied/not
+        denied. Returns the statistic, degrees of freedom and p-value, or
+        {"plans": n} with no statistic when fewer than two plans or no variation.
+        Plan is a synthetic label drawn independently of denial status by the
+        generator, so a small p-value here would signal a generator or data
+        problem rather than real plan behavior."""
+        cells: dict[str, list[int]] = {}
+        for r in self.load_store().values():
+            c = cells.setdefault(r["plan_type"] or "Unknown", [0, 0])
+            c[0] += 1
+            c[1] += r["status"] == "denied"
+        total = sum(c[0] for c in cells.values())
+        denied = sum(c[1] for c in cells.values())
+        if len(cells) < 2 or denied in (0, total):
+            return {"plans": len(cells)}
+        stat = 0.0
+        for n, d in cells.values():
+            for obs, exp in ((d, n * denied / total), (n - d, n * (total - denied) / total)):
+                stat += (obs - exp) ** 2 / exp
+        df = len(cells) - 1
+        return {"plans": len(cells), "claims": total, "chi2": round(stat, 3), "df": df,
+                "p_value": round(self.chi2_sf(stat, df), 4)}
 
     def plan_per_member(self) -> list[dict]:
         """Per plan: distinct synthetic members seen, claims per member and

@@ -943,3 +943,29 @@ def test_status_payment_ratios_math_and_render(tmp_path):
     md = report.render_markdown([], [], [], 0, status_ratios=list(out.values()))
     assert "| paid | 2 | 2 | 75.0% | 65.0% |" in md and "status label" in md
     assert Pipeline(tmp_path / "none.csv").status_payment_ratios() == []
+
+
+def test_chi2_sf_matches_known_values():
+    from healthdata.pipeline import Pipeline as P
+    assert abs(P.chi2_sf(3.841, 1) - 0.05) < 0.001
+    assert abs(P.chi2_sf(5.991, 2) - 0.05) < 0.001
+    assert abs(P.chi2_sf(18.307, 10) - 0.05) < 0.001
+    assert abs(P.chi2_sf(1.0, 4) - 0.9098) < 0.001           # series branch
+    assert abs(P.chi2_sf(30.0, 3) - 1.38e-6) < 1e-6           # continued-fraction branch
+    assert P.chi2_sf(0, 3) == 1.0 and P.chi2_sf(5, 0) == 1.0
+
+
+def test_plan_denial_independence_flags_dependence_and_handles_degenerate(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "c.csv")
+    claims = (_cell("PPO", "2026-09", 100, 5) + _cell("HMO", "2026-09", 100, 5))   # same denial rate
+    pipe.ingest(claims)
+    same = pipe.plan_denial_independence()
+    assert same["df"] == 1 and same["chi2"] == 0.0 and same["p_value"] == 1.0
+    pipe2 = Pipeline(tmp_path / "d.csv")
+    pipe2.ingest(_cell("PPO", "2026-09", 100, 40) + _cell("HMO", "2026-09", 100, 5, start=1000))
+    diff = pipe2.plan_denial_independence()
+    assert diff["p_value"] < 0.001
+    assert Pipeline(tmp_path / "none.csv").plan_denial_independence() == {"plans": 0}
+    md = report.render_markdown([], [], [], 0, independence=same)
+    assert "chi2 = 0.0, df = 1, p = 1.0" in md and "not evidence of fairness" in md
