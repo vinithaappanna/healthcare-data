@@ -25,6 +25,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     duplicates: list[dict] | None = None,
                     trend: list[dict] | None = None,
                     cost_sharing: list[dict] | None = None,
+                    status_ratios: list[dict] | None = None,
                     denial_cats: list[dict] | None = None,
                     plan_denied_dollars: list[dict] | None = None,
                     outliers: list[dict] | None = None,
@@ -154,6 +155,14 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Category | Denied claims | Share | Billed ($) |", "| --- | ---: | ---: | ---: |"]
         for r in denial_cats:
             lines.append(f"| {r['category']} | {r['claims']} | {r['share']:.1%} | {r['billed']:,.2f} |")
+    if status_ratios:
+        lines += ["", "## Payment ratios by claim status", "",
+                  "Mean claim-level paid/allowed and allowed/billed among claims with a positive allowed amount. "
+                  "In this synthetic generator 'adjusted' is only a status label with no separate adjustment logic, so "
+                  "it is expected to match 'paid'. Denied claims pay zero; most still carry a nominal allowed amount from the generator (duplicate denials carry none), so their allowed/billed is not a payer decision.", "",
+                  "| Status | Claims | Priced | Paid/allowed | Allowed/billed |", "| --- | ---: | ---: | ---: | ---: |"]
+        for r in status_ratios:
+            lines.append(f"| {r['status']} | {r['claims']} | {r['priced']} | {r['paid_to_allowed']:.1%} | {r['allowed_to_billed']:.1%} |")
     if outliers is not None:
         lines += ["", "## Denial-rate outliers (plan x month)", "",
                   "Cells whose denial rate is at least 2 standard errors from the overall rate "

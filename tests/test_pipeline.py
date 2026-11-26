@@ -925,3 +925,21 @@ def test_denial_categories_group_reasons_and_render(tmp_path):
     md = report.render_markdown([], [], [], 0, denial_cats=list(out.values()))
     assert "| administrative process | 2 | 66.7% | 150.00 |" in md and "not an industry standard" in md
     assert Pipeline(tmp_path / "none.csv").denial_categories() == []
+
+
+def test_status_payment_ratios_math_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([
+        make_valid("CLM-1", member_id="MBR-0001", billed_amount=100, allowed_amount=80, paid_amount=40),
+        make_valid("CLM-2", member_id="MBR-0002", billed_amount=200, allowed_amount=100, paid_amount=100),
+        make_valid("CLM-3", member_id="MBR-0003", billed_amount=50, allowed_amount=0, paid_amount=0,
+                   status="denied", denial_reason="timely filing exceeded"),
+    ])
+    out = {r["status"]: r for r in pipe.status_payment_ratios()}
+    assert out["paid"] == {"status": "paid", "claims": 2, "priced": 2, "paid_to_allowed": 0.75, "allowed_to_billed": 0.65}
+    assert out["denied"] == {"status": "denied", "claims": 1, "priced": 0, "paid_to_allowed": 0.0, "allowed_to_billed": 0.0}
+    assert [r["status"] for r in pipe.status_payment_ratios()] == ["paid", "denied"]
+    md = report.render_markdown([], [], [], 0, status_ratios=list(out.values()))
+    assert "| paid | 2 | 2 | 75.0% | 65.0% |" in md and "status label" in md
+    assert Pipeline(tmp_path / "none.csv").status_payment_ratios() == []

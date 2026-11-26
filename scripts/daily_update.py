@@ -75,6 +75,7 @@ def main(root: Path | None = None, report_only: bool = False) -> int:
         report.render_markdown(monthly, reasons, mix, stats["total"],
                                plan_perf=pipe.plan_performance(),
                                cost_sharing=pipe.plan_cost_sharing(),
+                               status_ratios=pipe.status_payment_ratios(),
                                denial_cats=pipe.denial_categories(),
                                plan_denied_dollars=pipe.plan_denied_dollars(),
                                outliers=pipe.denial_rate_outliers(),

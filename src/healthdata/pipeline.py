@@ -288,6 +288,27 @@ class Pipeline:
                  "billed": round(a["billed"], 2), "paid": round(a["paid"], 2)}
                 for k, a in sorted(agg.items(), key=lambda kv: (order.get(kv[0], 9), kv[0]))]
 
+    def status_payment_ratios(self) -> list[dict]:
+        """Per status: claims with a positive allowed amount, mean paid/allowed
+        and mean allowed/billed (claim-level ratios averaged, not dollar
+        weighted). Denied claims pay zero; most still carry a nominal
+        generator-assigned allowed amount, so their allowed/billed is not a payer decision. In this generator "adjusted" is only a status
+        label with no separate adjustment logic, so it should look like "paid"."""
+        agg: dict[str, list] = {}
+        for r in self.load_store().values():
+            a = agg.setdefault(r["status"] or "unknown", [0, 0, 0.0, 0.0])
+            a[0] += 1
+            allowed, billed, paid = (float(r[k] or 0) for k in ("allowed_amount", "billed_amount", "paid_amount"))
+            if allowed > 0 and billed > 0:
+                a[1] += 1
+                a[2] += paid / allowed
+                a[3] += allowed / billed
+        order = {"paid": 0, "adjusted": 1, "denied": 2}
+        return [{"status": k, "claims": a[0], "priced": a[1],
+                 "paid_to_allowed": round(a[2] / a[1], 4) if a[1] else 0.0,
+                 "allowed_to_billed": round(a[3] / a[1], 4) if a[1] else 0.0}
+                for k, a in sorted(agg.items(), key=lambda kv: (order.get(kv[0], 9), kv[0]))]
+
     def diagnosis_summary(self, top: int = 6) -> list[dict]:
         """Top diagnosis codes by total paid, with description, claim count,
         average billed and denial rate. Codes and descriptions are an
