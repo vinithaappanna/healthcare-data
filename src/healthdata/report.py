@@ -25,6 +25,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     duplicates: list[dict] | None = None,
                     trend: list[dict] | None = None,
                     cost_sharing: list[dict] | None = None,
+                    denial_cats: list[dict] | None = None,
                     plan_denied_dollars: list[dict] | None = None,
                     outliers: list[dict] | None = None,
                     concentration: dict | None = None,
@@ -146,6 +147,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
         for r in plan_denied_dollars:
             lines.append(f"| {r['plan']} | {r['claims']} | {r['denial_rate']:.1%} | "
                          f"{r['denied_billed']:,.2f} | {r['denied_dollar_share']:.1%} |")
+    if denial_cats:
+        lines += ["", "## Denials by broad category", "",
+                  "Denial reasons grouped with a simplified teaching taxonomy (not an industry standard, not coding advice). "
+                  "Illustrative synthetic data: reasons are drawn by the generator, so the mix says nothing about real payers.", "",
+                  "| Category | Denied claims | Share | Billed ($) |", "| --- | ---: | ---: | ---: |"]
+        for r in denial_cats:
+            lines.append(f"| {r['category']} | {r['claims']} | {r['share']:.1%} | {r['billed']:,.2f} |")
     if outliers is not None:
         lines += ["", "## Denial-rate outliers (plan x month)", "",
                   "Cells whose denial rate is at least 2 standard errors from the overall rate "

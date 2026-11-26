@@ -646,6 +646,33 @@ class Pipeline:
                for k, v in plans.items()]
         return sorted(out, key=lambda r: (-r["denied_billed"], r["plan"]))
 
+    DENIAL_CATEGORIES = {
+        "not medically necessary": "clinical review",
+        "missing prior authorization": "administrative process",
+        "timely filing exceeded": "administrative process",
+        "duplicate claim": "billing error",
+        "out-of-network provider": "network / coverage",
+    }
+
+    def denial_categories(self) -> list[dict]:
+        """Denied claims grouped into broad, illustrative categories (clinical
+        review, administrative process, billing error, network / coverage) with
+        claims, billed dollars and share of denied claims. The mapping is a
+        simplified teaching taxonomy, not an industry standard; unmapped
+        reasons fall under "other"."""
+        agg: dict[str, list[float]] = {}
+        for r in self.load_store().values():
+            if r.get("status") != "denied":
+                continue
+            cat = self.DENIAL_CATEGORIES.get(r.get("denial_reason") or "", "other")
+            a = agg.setdefault(cat, [0, 0.0])
+            a[0] += 1
+            a[1] += float(r["billed_amount"] or 0)
+        total = sum(v[0] for v in agg.values())
+        rows = [{"category": k, "claims": n, "billed": round(b, 2), "share": round(n / total, 4)}
+                for k, (n, b) in agg.items()]
+        return sorted(rows, key=lambda x: (-x["claims"], x["category"]))
+
     def plan_per_member(self) -> list[dict]:
         """Per plan: distinct synthetic members seen, claims per member and
         paid dollars per member in the store (a rough per-member-cost view; a

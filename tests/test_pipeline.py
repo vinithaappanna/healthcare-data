@@ -908,3 +908,20 @@ def test_plan_denied_dollars_shares_and_render(tmp_path):
     md = report.render_markdown([], [], [], 0, plan_denied_dollars=list(out.values()))
     assert "| PPO | 2 | 50.0% | 100.00 | 25.0% |" in md and "synthetic label" in md
     assert Pipeline(tmp_path / "none.csv").plan_denied_dollars() == []
+
+
+def test_denial_categories_group_reasons_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "c.csv")
+    def den(i, reason, billed):
+        return make_valid(f"CLM-D{i}", member_id=f"MBR-{i:04d}", billed_amount=billed, allowed_amount=0, paid_amount=0,
+                          status="denied", denial_reason=reason)
+    pipe.ingest([den(1, "missing prior authorization", 100), den(2, "timely filing exceeded", 50),
+                 den(3, "not medically necessary", 400), make_valid("CLM-OK", member_id="MBR-0009")])
+    out = {r["category"]: r for r in pipe.denial_categories()}
+    assert out["administrative process"] == {"category": "administrative process", "claims": 2, "billed": 150.0, "share": 0.6667}
+    assert out["clinical review"]["claims"] == 1 and "billing error" not in out    # paid claim ignored
+    assert pipe.denial_categories()[0]["category"] == "administrative process"
+    md = report.render_markdown([], [], [], 0, denial_cats=list(out.values()))
+    assert "| administrative process | 2 | 66.7% | 150.00 |" in md and "not an industry standard" in md
+    assert Pipeline(tmp_path / "none.csv").denial_categories() == []
