@@ -88,3 +88,7 @@ Daily batches spread service dates over the trailing 90 days, and older single-d
 redistributed once (provenance tag `+2026-11-23`, a quality gate caps any month at 50% of claims).
 Monthly figures are generator-shaped, not evidence of utilization trends. Details and before/after
 metrics: [docs/service-date-redistribution.md](docs/service-date-redistribution.md).
+
+## Committing
+
+`scripts/safe_commit.sh "message"` runs the test suite and commits only if it passes (fail-closed: a failing test, a collection error or no passing tests blocks the commit). It does not push.
