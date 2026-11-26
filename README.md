@@ -17,7 +17,7 @@ seeded RNG - no real member, patient, provider or plan data anywhere.
 - `healthdata.pipeline` - validate, dedupe on `claim_id`, append to a CSV
   store, and build monthly financial marts, denial-reason and plan-mix views
 - `healthdata.quality` - amount-consistency, denial-reason, duplicate-grain,
-  procedure-range, diagnosis, service-date and member-consistency (one plan and age band per member) checks that fail loudly
+  procedure-range, diagnosis, service-date, member-consistency (one plan and age band per member) and status/id checks (known statuses, no reason on non-denied claims, no negative amounts, unique ids) that fail loudly
 - `healthdata.report` - markdown report plus charts. Sections include plan
   performance and cost sharing, denial reasons (and the procedures behind them),
   plan x month denial-rate outliers, paid-amount concentration, cost by age

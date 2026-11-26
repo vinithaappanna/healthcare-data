@@ -122,7 +122,7 @@ def test_gates_command_reports_each_check_and_exit_code(tmp_path, capsys):
     Pipeline(store).ingest([make_valid("A-1", service_date="2026-10-01")])
     assert main(["gates"], store=store) == 0
     out = json.loads(capsys.readouterr().out)
-    assert len(out) == 10 and all(g["ok"] for g in out) and out[0]["check"] == "amount consistency"
+    assert len(out) == 11 and all(g["ok"] for g in out) and out[0]["check"] == "amount consistency"
     # corrupt a row: paid above allowed
     import csv
     rows = list(csv.DictReader(store.open()))

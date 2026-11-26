@@ -147,6 +147,32 @@ def check_month_concentration(rows: list[dict], max_share: float = 0.5, min_rows
     return [f"service month {month} holds {share:.0%} of claims (limit {max_share:.0%})"] if share > max_share else []
 
 
+KNOWN_STATUSES = {"paid", "denied", "adjusted"}
+
+
+def check_status_vocabulary(rows: list[dict]) -> list[str]:
+    """Status must be paid, denied or adjusted; a denial reason belongs only on
+    denied claims; amounts must not be negative; claim ids must be unique."""
+    issues = []
+    seen: set[str] = set()
+    for row in rows:
+        cid = row.get("claim_id", "?")
+        if cid in seen:
+            issues.append(f"{cid}: duplicate claim id")
+        seen.add(cid)
+        if row.get("status") not in KNOWN_STATUSES:
+            issues.append(f"{cid}: unknown status {row.get('status')!r}")
+        elif row["status"] != "denied" and row.get("denial_reason"):
+            issues.append(f"{cid}: denial reason on a {row['status']} claim")
+        for field in ("billed_amount", "allowed_amount", "paid_amount"):
+            try:
+                if float(row.get(field) or 0) < 0:
+                    issues.append(f"{cid}: negative {field}")
+            except (TypeError, ValueError):
+                pass        # non-numeric values are reported by the amount check
+    return issues
+
+
 CHECKS = [
     ("amount consistency", check_amount_consistency),
     ("denial reasons", check_denial_reasons),
@@ -158,6 +184,7 @@ CHECKS = [
     ("age plausibility", check_age_plausibility),
     ("duplicate denials supported", check_duplicate_denials_supported),
     ("service month concentration", check_month_concentration),
+    ("status vocabulary and ids", check_status_vocabulary),
 ]
 
 

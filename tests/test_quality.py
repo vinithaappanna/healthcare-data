@@ -228,3 +228,19 @@ def test_gate_flags_unsupported_duplicate_denial_and_repair_fixes_it_keeping_pro
     assert rows["CLM-X1"]["data_origin"] == "regenerated-2026-11-22"
     assert rows["CLM-Y2"]["denial_reason"] == "duplicate claim" and rows["CLM-Y2"]["data_origin"] == "generated"
     assert run_all(tmp_path / "d.csv") == [] and pipe.harmonize_members() == 0
+
+
+def test_status_vocabulary_flags_each_problem_and_passes_clean():
+    from healthdata.quality import check_status_vocabulary
+    base = {"billed_amount": "100", "allowed_amount": "80", "paid_amount": "60", "denial_reason": ""}
+    rows = [dict(base, claim_id="A", status="paid"),
+            dict(base, claim_id="A", status="paid"),                                   # duplicate id
+            dict(base, claim_id="B", status="pending"),                                # unknown status
+            dict(base, claim_id="C", status="adjusted", denial_reason="timely filing exceeded"),
+            dict(base, claim_id="D", status="paid", paid_amount="-5"),
+            dict(base, claim_id="E", status="denied", denial_reason="duplicate claim", paid_amount="0")]
+    got = check_status_vocabulary(rows)
+    assert got == ["A: duplicate claim id", "B: unknown status 'pending'",
+                   "C: denial reason on a adjusted claim", "D: negative paid_amount"]
+    assert check_status_vocabulary([rows[0], rows[5]]) == []
+    assert check_status_vocabulary([dict(base, claim_id="F", status="paid", billed_amount="x")]) == []
