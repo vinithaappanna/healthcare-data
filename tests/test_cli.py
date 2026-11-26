@@ -133,3 +133,16 @@ def test_gates_command_reports_each_check_and_exit_code(tmp_path, capsys):
     bad = [g for g in json.loads(capsys.readouterr().out) if not g["ok"]]
     assert bad[0]["check"] == "amount consistency" and bad[0]["issues"] == 1
     assert main(["gates"], store=tmp_path / "missing.csv") == 2
+
+
+def test_denials_command_combines_category_and_plan_views(tmp_path, capsys):
+    path = store(tmp_path)
+    assert cli.main(["denials"], store=path) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert [r["category"] for r in out["by_category"]] == ["billing error"]
+    assert out["by_category"][0]["claims"] == 1 and out["by_category"][0]["share"] == 1.0
+    plans = {r["plan"]: r for r in out["by_plan"]}
+    assert plans["PPO"]["denied_billed"] == 200.0 and plans["HMO"]["denied_billed"] == 0.0
+    assert "synthetic" in out["note"]
+    assert cli.main(["denials"], store=tmp_path / "missing.csv") == 0     # empty store: empty views, not a crash
+    assert json.loads(capsys.readouterr().out)["by_category"] == []
