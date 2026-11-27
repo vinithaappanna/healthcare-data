@@ -587,7 +587,8 @@ class Pipeline:
         """Allowed-to-billed ratio per procedure code (a stand-in for the
         negotiated discount), lowest ratio first. Procedures with fewer than
         min_claims claims are skipped as too noisy. Denied claims are excluded
-        because their allowed amount is zero by construction. Synthetic,
+        because denied claims pay zero and most carry only a nominal
+        generator-assigned allowed amount, not a payer decision. Synthetic,
         illustrative: not real contract rates."""
         agg: dict[str, list[float]] = {}
         for r in self.load_store().values():

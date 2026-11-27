@@ -78,3 +78,12 @@ def test_plot_denial_categories_writes_png_and_skips_empty(tmp_path):
     assert report.plot_denial_categories([], tmp_path / "none.png") is False
     assert not (tmp_path / "none.png").exists()
     assert report.plot_denial_categories([{"category": "x", "claims": 0, "billed": 0.0, "share": 0.0}], tmp_path / "z.png") is True
+
+
+def test_limitations_doc_covers_known_simplifications_and_is_linked():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    doc = (root / "docs" / "generator-limitations.md").read_text()
+    for phrase in ("adjusted", "nominal allowed amount", "Plan type and age band", "generator-shaped", "enrollment"):
+        assert phrase in doc
+    assert "docs/generator-limitations.md" in (root / "README.md").read_text()

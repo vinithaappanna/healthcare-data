@@ -93,3 +93,5 @@ metrics: [docs/service-date-redistribution.md](docs/service-date-redistribution.
 ## Committing
 
 `scripts/safe_commit.sh "message"` runs the test suite and commits only if it passes (fail-closed: a failing test, a collection error or no passing tests blocks the commit). It does not push.
+
+See `docs/generator-limitations.md` for the generator simplifications to keep in mind when reading any metric.
