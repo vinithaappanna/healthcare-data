@@ -881,6 +881,24 @@ class Pipeline:
                      "paid": round(m["paid"], 2)} for m in top_rows],
         }
 
+    def member_claim_dispersion(self) -> dict:
+        """Claims per member (members with at least one claim): mean, variance
+        and variance-to-mean ratio. A ratio near 1 matches random (Poisson)
+        assignment; well above 1 means claims cluster on a few members. The
+        generator assigns members uniformly at random, so about 1 is expected
+        here, and the store has no enrollment data, so zero-claim members are
+        invisible and the ratio is only indicative."""
+        per: dict[str, int] = {}
+        for r in self.load_store().values():
+            per[r["member_id"]] = per.get(r["member_id"], 0) + 1
+        n = len(per)
+        if n < 2:
+            return {"members": n}
+        mean = sum(per.values()) / n
+        var = sum((c - mean) ** 2 for c in per.values()) / (n - 1)
+        return {"members": n, "mean_claims": round(mean, 3), "variance": round(var, 3),
+                "ratio": round(var / mean, 3)}
+
     def plan_age_matrix(self, min_claims: int = 20) -> dict:
         """Average paid per claim for each plan x age band cell (all claims,
         denied count as 0). Cells under min_claims are None so thin cells are

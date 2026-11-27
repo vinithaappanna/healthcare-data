@@ -25,6 +25,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     duplicates: list[dict] | None = None,
                     trend: list[dict] | None = None,
                     cost_sharing: list[dict] | None = None,
+                    dispersion: dict | None = None,
                     independence: dict | None = None,
                     status_ratios: list[dict] | None = None,
                     denial_cats: list[dict] | None = None,
@@ -147,6 +148,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   f"chi2 = {i['chi2']}, df = {i['df']}, p = {i['p_value']}. Plan is a synthetic label drawn independently of "
                   "denial status, so a small p-value would point to a generator or data problem, not real plan behavior. "
                   "A large p-value is the expected result and is not evidence of fairness or equal treatment."]
+    if dispersion and "ratio" in dispersion:
+        d = dispersion
+        lines += ["", "## Claims per member: dispersion", "",
+                  f"Across {d['members']} members with claims: mean {d['mean_claims']}, variance {d['variance']}, "
+                  f"variance-to-mean ratio {d['ratio']}. A ratio near 1 matches random assignment; well above 1 would mean claims cluster "
+                  "on a few members. The generator assigns members at random, so about 1 is expected. No enrollment data, so zero-claim "
+                  "members are invisible and this is indicative only."]
     if plan_denied_dollars:
         lines += ["", "## Denied dollars by plan", "",
                   "Denial rate counts claims; denied-dollar share is billed dollars on denied claims over all billed dollars. "

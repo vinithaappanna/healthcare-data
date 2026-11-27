@@ -969,3 +969,14 @@ def test_plan_denial_independence_flags_dependence_and_handles_degenerate(tmp_pa
     assert Pipeline(tmp_path / "none.csv").plan_denial_independence() == {"plans": 0}
     md = report.render_markdown([], [], [], 0, independence=same)
     assert "chi2 = 0.0, df = 1, p = 1.0" in md and "not evidence of fairness" in md
+
+
+def test_member_claim_dispersion_math_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "c.csv")
+    pipe.ingest([make_valid(f"CLM-{m}-{i}", member_id=f"MBR-{m:04d}") for m, n in ((1, 1), (2, 3)) for i in range(n)])
+    d = pipe.member_claim_dispersion()
+    assert d == {"members": 2, "mean_claims": 2.0, "variance": 2.0, "ratio": 1.0}
+    assert Pipeline(tmp_path / "none.csv").member_claim_dispersion() == {"members": 0}
+    md = report.render_markdown([], [], [], 0, dispersion=d)
+    assert "variance-to-mean ratio 1.0" in md and "indicative only" in md
