@@ -39,6 +39,7 @@ python scripts/daily_update.py      # full update round with quality gates (adds
 python scripts/daily_update.py --report-only   # regenerate report and charts only; no new batch, safe to repeat
 python scripts/query.py member MBR-0076   # claim / member / plan / procedure / diagnosis lookups
 python scripts/query.py reconcile         # do all views account for the store? (exit 2 if not)
+python scripts/query.py profile           # column profile: blanks, distinct values, numeric range
 python scripts/query.py denials           # denial categories and denied dollars by plan
 python scripts/query.py gates             # run every quality gate against the store (exit 2 if any fails)
 python scripts/query.py origins           # claims per data_origin; also: bands, summary

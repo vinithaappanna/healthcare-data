@@ -146,3 +146,15 @@ def test_denials_command_combines_category_and_plan_views(tmp_path, capsys):
     assert "synthetic" in out["note"]
     assert cli.main(["denials"], store=tmp_path / "missing.csv") == 0     # empty store: empty views, not a crash
     assert json.loads(capsys.readouterr().out)["by_category"] == []
+
+
+def test_profile_command_reports_blanks_distinct_and_numeric_range(tmp_path, capsys):
+    path = store(tmp_path)
+    assert cli.main(["profile"], store=path) == 0
+    cols = {c["column"]: c for c in json.loads(capsys.readouterr().out)}
+    assert cols["claim_id"]["distinct"] == 3 and cols["claim_id"]["blank"] == 0
+    assert cols["billed_amount"]["min"] == 100.0 and cols["billed_amount"]["max"] == 200.0
+    assert cols["denial_reason"]["blank"] == 2 and cols["denial_reason"]["distinct"] == 1
+    assert "min" not in cols["status"]                       # text column: no numeric range
+    assert cli.main(["profile"], store=tmp_path / "missing.csv") == 0
+    assert json.loads(capsys.readouterr().out) == []

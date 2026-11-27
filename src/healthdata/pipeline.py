@@ -273,6 +273,28 @@ class Pipeline:
                  "paid": round(a[1], 2), "paid_share": round(a[1] / tp, 4) if tp else 0.0}
                 for (l, _lo, _hi), a in zip(labels, agg)]
 
+    def profile(self) -> list[dict]:
+        """Column profile of the store: rows, blank count, distinct values and,
+        for numeric columns, min and max. A first look at a data extract before
+        any analysis. Numeric means every non-blank value parses as a number."""
+        rows = list(self.load_store().values())
+        if not rows:
+            return []
+        out = []
+        for col in rows[0].keys():
+            vals = [r.get(col) for r in rows]
+            filled = [v for v in vals if v not in (None, "")]
+            entry = {"column": col, "rows": len(vals), "blank": len(vals) - len(filled),
+                     "distinct": len(set(filled))}
+            try:
+                nums = [float(v) for v in filled]
+            except (TypeError, ValueError):
+                nums = []
+            if nums:
+                entry["min"], entry["max"] = min(nums), max(nums)
+            out.append(entry)
+        return out
+
     def status_breakdown(self) -> list[dict]:
         """Claims, billed and paid dollars per claim status (paid, denied,
         adjusted first in that order, then any others by name). The base view
