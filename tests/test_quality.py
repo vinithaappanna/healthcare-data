@@ -244,3 +244,14 @@ def test_status_vocabulary_flags_each_problem_and_passes_clean():
                    "C: denial reason on a adjusted claim", "D: negative paid_amount"]
     assert check_status_vocabulary([rows[0], rows[5]]) == []
     assert check_status_vocabulary([dict(base, claim_id="F", status="paid", billed_amount="x")]) == []
+
+
+def test_data_origin_gate_flags_each_problem_and_accepts_valid_tags():
+    from healthdata.quality import check_data_origin
+    ok = ["generated", "regenerated-2026-11-21", "regenerated-2026-11-21+2026-11-23"]
+    assert check_data_origin([{"claim_id": f"C{i}", "data_origin": t} for i, t in enumerate(ok)]) == []
+    bad = [("M", None), ("E", ""), ("X", "made-up"), ("D", "regenerated-2026-13-45"),
+           ("O", "regenerated-2026-11-23+2026-11-21"), ("U", "regenerated-2026-11-21+2026-11-21")]
+    got = check_data_origin([{"claim_id": c, "data_origin": t} for c, t in bad])
+    assert [g.split(":")[0] for g in got] == ["M", "E", "X", "D", "O", "U"]
+    assert "missing" in got[0] and "malformed" in got[2] and "invalid date" in got[3] and "ascending" in got[4]

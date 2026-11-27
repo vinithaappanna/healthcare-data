@@ -3,6 +3,7 @@ strings; empty means pass. Daily runs fail loudly on any issue."""
 from __future__ import annotations
 
 import datetime as dt
+import re
 from pathlib import Path
 
 from .claims import PROCEDURES, DIAGNOSES
@@ -173,6 +174,33 @@ def check_status_vocabulary(rows: list[dict]) -> list[str]:
     return issues
 
 
+ORIGIN_PATTERN = re.compile(r"^(generated|regenerated-\d{4}-\d{2}-\d{2}(\+\d{4}-\d{2}-\d{2})*)$")
+
+
+def check_data_origin(rows: list[dict]) -> list[str]:
+    """Provenance integrity: every row carries a data_origin tag that is either
+    "generated" or "regenerated-YYYY-MM-DD" (composites joined with "+", dates
+    valid and in ascending order). An empty or malformed tag would break the
+    provenance counts silently."""
+    issues = []
+    for r in rows:
+        tag = r.get("data_origin")
+        if tag is None or tag == "":
+            issues.append(f"{r.get('claim_id', '?')}: missing data_origin")
+        elif not ORIGIN_PATTERN.match(tag):
+            issues.append(f"{r.get('claim_id', '?')}: malformed data_origin {tag!r}")
+        elif tag.startswith("regenerated-"):
+            days = tag[len("regenerated-"):].split("+")
+            try:
+                parsed = [dt.date.fromisoformat(d) for d in days]
+            except ValueError:
+                issues.append(f"{r.get('claim_id', '?')}: invalid date in data_origin {tag!r}")
+                continue
+            if parsed != sorted(set(parsed)):
+                issues.append(f"{r.get('claim_id', '?')}: data_origin dates not ascending and unique {tag!r}")
+    return issues
+
+
 CHECKS = [
     ("amount consistency", check_amount_consistency),
     ("denial reasons", check_denial_reasons),
@@ -185,6 +213,7 @@ CHECKS = [
     ("duplicate denials supported", check_duplicate_denials_supported),
     ("service month concentration", check_month_concentration),
     ("status vocabulary and ids", check_status_vocabulary),
+    ("data origin tags", check_data_origin),
 ]
 
 
