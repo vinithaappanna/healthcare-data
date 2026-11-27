@@ -163,6 +163,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   "| Category | Denied claims | Share | Billed ($) |", "| --- | ---: | ---: | ---: |"]
         for r in denial_cats:
             lines.append(f"| {r['category']} | {r['claims']} | {r['share']:.1%} | {r['billed']:,.2f} |")
+        lines += ["", "![Denials by broad category](denial_categories.png)"]
     if status_ratios:
         lines += ["", "## Payment ratios by claim status", "",
                   "Mean claim-level paid/allowed and allowed/billed among claims with a positive allowed amount. "
@@ -407,6 +408,31 @@ def plot_monthly_financials(monthly: list[dict], out_path) -> bool:
     ax.set_ylabel("USD")
     ax.legend()
     fig.autofmt_xdate()
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return True
+
+
+def plot_denial_categories(cats: list[dict], out_path) -> bool:
+    """Grouped bars per broad denial category: share of denied claims next to
+    share of denied billed dollars. Synthetic data, illustrative taxonomy."""
+    if not cats:
+        return False
+    total_billed = sum(c["billed"] for c in cats)
+    names = [c["category"] for c in cats]
+    count_share = [c["share"] * 100 for c in cats]
+    dollar_share = [(c["billed"] / total_billed * 100) if total_billed else 0.0 for c in cats]
+    fig, ax = plt.subplots(figsize=(8, 3.6))
+    ys = range(len(names))
+    ax.barh([y - 0.2 for y in ys], count_share, height=0.38, color="#a61e4d", label="share of denied claims")
+    ax.barh([y + 0.2 for y in ys], dollar_share, height=0.38, color="#364fc7", label="share of denied billed dollars")
+    ax.set_yticks(list(ys))
+    ax.set_yticklabels(names)
+    ax.invert_yaxis()
+    ax.set_xlabel("percent")
+    ax.set_title("Denials by broad category (synthetic, illustrative taxonomy)")
+    ax.legend(loc="lower right", fontsize=8)
     fig.tight_layout()
     fig.savefig(out_path, dpi=120)
     plt.close(fig)

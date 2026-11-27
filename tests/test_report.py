@@ -67,3 +67,14 @@ def test_size_band_section_embeds_chart():
     row = {"band": "under $100", "claims": 3, "claim_share": 0.6, "paid": 120.0, "paid_share": 0.1,
            "denial_rate": 0.0}
     assert "size_bands.png" in report.render_markdown([], [], [], 0, size_bands=[row])
+
+
+def test_plot_denial_categories_writes_png_and_skips_empty(tmp_path):
+    cats = [{"category": "administrative process", "claims": 5, "billed": 500.0, "share": 0.5},
+            {"category": "clinical review", "claims": 5, "billed": 1500.0, "share": 0.5}]
+    out = tmp_path / "c.png"
+    assert report.plot_denial_categories(cats, out) is True
+    assert out.stat().st_size > 1000
+    assert report.plot_denial_categories([], tmp_path / "none.png") is False
+    assert not (tmp_path / "none.png").exists()
+    assert report.plot_denial_categories([{"category": "x", "claims": 0, "billed": 0.0, "share": 0.0}], tmp_path / "z.png") is True

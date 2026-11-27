@@ -121,6 +121,8 @@ def main(root: Path | None = None, report_only: bool = False) -> int:
         print("wrote size band chart")
     if report.plot_age_band_costs(pipe.age_band_costs(), REPORTS / "age_band_costs.png"):
         print("wrote age band chart")
+    if report.plot_denial_categories(pipe.denial_categories(), REPORTS / "denial_categories.png"):
+        print("wrote denial category chart")
     if report.plot_denial_reasons(reasons, REPORTS / "denial_reasons.png"):
         print("wrote denial chart")
     print("wrote reports/claims_report.md")
