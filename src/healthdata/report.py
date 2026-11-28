@@ -25,6 +25,7 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                     duplicates: list[dict] | None = None,
                     trend: list[dict] | None = None,
                     cost_sharing: list[dict] | None = None,
+                    billed_out: list[dict] | None = None,
                     dispersion: dict | None = None,
                     independence: dict | None = None,
                     status_ratios: list[dict] | None = None,
@@ -155,6 +156,13 @@ def render_markdown(monthly: list[dict], denial_reasons: list[tuple[str, int]],
                   f"variance-to-mean ratio {d['ratio']}. A ratio near 1 matches random assignment; well above 1 would mean claims cluster "
                   "on a few members. The generator assigns members at random, so about 1 is expected. No enrollment data, so zero-claim "
                   "members are invisible and this is indicative only."]
+    if billed_out:
+        lines += ["", "## Highest billed amounts relative to procedure median", "",
+                  "Review-queue template: claims furthest above their procedure's median billed amount (procedures under 30 claims skipped). "
+                  "The generator draws amounts inside fixed per-procedure ranges, so no true outliers are expected here.", "",
+                  "| Claim | Procedure | Billed ($) | Procedure median ($) | Ratio |", "| --- | --- | ---: | ---: | ---: |"]
+        for r in billed_out:
+            lines.append(f"| {r['claim_id']} | {r['procedure']} | {r['billed']:,.2f} | {r['procedure_median']:,.2f} | {r['ratio']}x |")
     if plan_denied_dollars:
         lines += ["", "## Denied dollars by plan", "",
                   "Denial rate counts claims; denied-dollar share is billed dollars on denied claims over all billed dollars. "

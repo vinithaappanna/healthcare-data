@@ -1017,6 +1017,29 @@ class Pipeline:
                 "buckets": [{"bucket": k, "members": v, "share": round(v / total, 4) if total else 0.0}
                             for k, v in buckets.items()]}
 
+    def billed_outliers(self, min_claims: int = 30, top: int = 5) -> list[dict]:
+        """Claims whose billed amount sits furthest above their procedure's
+        median, as a ratio to that median (procedures under min_claims claims
+        skipped). A payment-integrity review queue, not a finding. The generator
+        draws billed amounts uniformly inside a per-procedure range, so ratios
+        stay bounded and no true outliers are expected; the view is a template
+        for real data."""
+        import statistics
+        by_proc: dict[str, list[dict]] = {}
+        for r in self.load_store().values():
+            by_proc.setdefault(r["procedure_code"], []).append(r)
+        out = []
+        for code, rows in by_proc.items():
+            if len(rows) < min_claims:
+                continue
+            med = statistics.median(float(r["billed_amount"]) for r in rows)
+            if med <= 0:
+                continue
+            for r in rows:
+                out.append({"claim_id": r["claim_id"], "procedure": code, "billed": float(r["billed_amount"]),
+                            "procedure_median": round(med, 2), "ratio": round(float(r["billed_amount"]) / med, 2)})
+        return sorted(out, key=lambda x: (-x["ratio"], x["claim_id"]))[:top]
+
     def potential_duplicates(self) -> list[dict]:
         """Groups of claims with the same member, procedure and service date.
 

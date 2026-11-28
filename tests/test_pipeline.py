@@ -980,3 +980,20 @@ def test_member_claim_dispersion_math_and_render(tmp_path):
     assert Pipeline(tmp_path / "none.csv").member_claim_dispersion() == {"members": 0}
     md = report.render_markdown([], [], [], 0, dispersion=d)
     assert "variance-to-mean ratio 1.0" in md and "indicative only" in md
+
+
+def test_billed_outliers_ratio_min_claims_and_render(tmp_path):
+    from healthdata import report
+    pipe = Pipeline(tmp_path / "c.csv")
+    claims = [make_valid(f"CLM-P-{i:03d}", member_id=f"MBR-{i % 50 + 1:04d}", billed_amount=100, allowed_amount=80, paid_amount=60)
+              for i in range(30)]
+    claims.append(make_valid("CLM-BIG", member_id="MBR-0099", billed_amount=450, allowed_amount=300, paid_amount=200))
+    claims += [make_valid(f"CLM-S{i}", member_id="MBR-0098", procedure_code="99214", billed_amount=9000, allowed_amount=1, paid_amount=1)
+               for i in range(3)]                                              # too few claims: skipped
+    pipe.ingest(claims)
+    out = pipe.billed_outliers(top=2)
+    assert out[0] == {"claim_id": "CLM-BIG", "procedure": "99213", "billed": 450.0, "procedure_median": 100.0, "ratio": 4.5}
+    assert all(o["procedure"] == "99213" for o in out)
+    assert Pipeline(tmp_path / "none.csv").billed_outliers() == []
+    md = report.render_markdown([], [], [], 0, billed_out=out)
+    assert "| CLM-BIG | 99213 | 450.00 | 100.00 | 4.5x |" in md and "no true outliers" in md
