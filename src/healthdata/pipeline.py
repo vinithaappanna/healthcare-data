@@ -924,6 +924,24 @@ class Pipeline:
             rows.append({"plan": plan, "avg_paid": vals})
         return {"bands": bands, "min_claims": min_claims, "rows": rows}
 
+    def batch_summary(self) -> list[dict]:
+        """Claims per ingest batch, read from claim ids of the form
+        CLM-<day>-B<nn>-<seq>. Ids without a batch marker are grouped as
+        "initial". Shows whether a repeat run added an unexpected batch.
+        Sorted by day then batch number; "initial" first."""
+        import re
+        pat = re.compile(r"^CLM-(\d+)-B(\d+)-\d+$")
+        agg: dict[tuple, dict] = {}
+        for r in self.load_store().values():
+            m = pat.match(r["claim_id"])
+            key = (m.group(1), int(m.group(2))) if m else ("", 0)
+            a = agg.setdefault(key, {"claims": 0, "denied": 0})
+            a["claims"] += 1
+            a["denied"] += r["status"] == "denied"
+        return [{"batch": f"{d}-B{n:02d}" if d else "initial", "claims": a["claims"],
+                 "denial_rate": round(a["denied"] / a["claims"], 4)}
+                for (d, n), a in sorted(agg.items())]
+
     def age_band_costs(self) -> list[dict]:
         """Claims, average paid per claim and denial rate by age band, in
         natural age order. Illustrative synthetic metrics."""

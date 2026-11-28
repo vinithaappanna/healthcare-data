@@ -5,6 +5,7 @@
   python scripts/query.py plan PPO
   python scripts/query.py procedure 99213
   python scripts/query.py diagnosis I10
+  python scripts/query.py batches      # claims per ingest batch
   python scripts/query.py profile      # column profile: blanks, distinct values, numeric range
   python scripts/query.py denials      # denial categories and denied dollars by plan
 
@@ -79,7 +80,7 @@ def main(argv: list[str] | None = None, store: Path | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name in ("claim", "member", "plan", "procedure", "diagnosis"):
         sub.add_parser(name).add_argument("key")
-    for name in ("reconcile", "origins", "bands", "summary", "months", "gates", "denials", "profile"):
+    for name in ("reconcile", "origins", "bands", "summary", "months", "gates", "denials", "profile", "batches"):
         sub.add_parser(name)        # whole-store views: no key
     args = parser.parse_args(argv)
     pipe = Pipeline(store or Path(__file__).resolve().parents[2] / "data" / "claims.csv")
@@ -93,6 +94,9 @@ def main(argv: list[str] | None = None, store: Path | None = None) -> int:
         results = run_checks(rows)
         print(json.dumps([{"check": n, "issues": len(i), "ok": not i, "examples": i[:3]} for n, i in results], indent=2))
         return 0 if all(not i for _n, i in results) else 2      # 2: a gate failed, same as reconcile
+    if args.cmd == "batches":
+        print(json.dumps(pipe.batch_summary(), indent=2))
+        return 0
     if args.cmd == "profile":
         print(json.dumps(pipe.profile(), indent=2))
         return 0

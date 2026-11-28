@@ -158,3 +158,19 @@ def test_profile_command_reports_blanks_distinct_and_numeric_range(tmp_path, cap
     assert "min" not in cols["status"]                       # text column: no numeric range
     assert cli.main(["profile"], store=tmp_path / "missing.csv") == 0
     assert json.loads(capsys.readouterr().out) == []
+
+
+def test_batches_command_groups_by_batch_marker(tmp_path, capsys):
+    path = tmp_path / "c.csv"
+    Pipeline(path).ingest([make_valid("CLM-001", member_id="MBR-0001"),
+                           make_valid("CLM-61127-B01-000001", member_id="MBR-0002"),
+                           make_valid("CLM-61127-B01-000002", member_id="MBR-0003", status="denied", allowed_amount=0,
+                                      paid_amount=0, denial_reason="timely filing exceeded"),
+                           make_valid("CLM-61127-B02-000001", member_id="MBR-0004")])
+    assert cli.main(["batches"], store=path) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out == [{"batch": "initial", "claims": 1, "denial_rate": 0.0},
+                   {"batch": "61127-B01", "claims": 2, "denial_rate": 0.5},
+                   {"batch": "61127-B02", "claims": 1, "denial_rate": 0.0}]
+    assert cli.main(["batches"], store=tmp_path / "missing.csv") == 0
+    assert json.loads(capsys.readouterr().out) == []
